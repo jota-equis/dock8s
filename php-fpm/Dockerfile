@@ -91,6 +91,8 @@ ADD conf.d/www.conf /usr/local/etc/php-fpm.d/
 #	chmod +x /healthcheck
 
 RUN set -eux; \
+    cd /usr/local/etc/php; \
+	[ -s php.ini ] || cp -ax php.ini-production php.ini; \
     apt-get autoremove -y; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
