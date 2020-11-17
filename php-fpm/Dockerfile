@@ -68,15 +68,15 @@ RUN set -eux; \
     docker-php-ext-enable apcu; \
     docker-php-ext-enable opcache; \
     \
-#    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
-#    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
-#    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
-#    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
-#    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
-#    RESULT=$?; \
-#    php -r "unlink('composer-setup.php');"; \
-#    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
-#    \
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
+    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
+    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
+    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; exit 1; }; \
+    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
+    RESULT=$?; \
+    php -r "unlink('composer-setup.php');"; \
+    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*); \
+    \
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
 	find /usr/local -type f -executable -exec ldd '{}' ';' \
