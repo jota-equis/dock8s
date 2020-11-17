@@ -49,8 +49,6 @@ RUN set -eux; \
     make && make install; \
     cd -; \
     \
-    rm -rf /tmp/pear ~/.pearrc; \
-    \
     docker-php-ext-configure gd \
         --with-jpeg \
         --with-xpm \
@@ -70,15 +68,15 @@ RUN set -eux; \
     docker-php-ext-enable apcu; \
     docker-php-ext-enable opcache; \
     \
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
-    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
-    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
-    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
-    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
-    RESULT=$?; \
-    php -r "unlink('composer-setup.php');"; \
-    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
-    \
+#    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
+#    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
+#    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
+#    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
+#    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
+#    RESULT=$?; \
+#    php -r "unlink('composer-setup.php');"; \
+#    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
+#    \
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
 	find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -91,11 +89,9 @@ RUN set -eux; \
 	; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*; \
+    rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/* ~/.pearrc; \
     \
 #   echo '#!/bin/bash' > /healthcheck && \
 #	echo 'env -i SCRIPT_NAME=/health SCRIPT_FILENAME=/health REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1' >> /healthcheck && \
 #	chmod +x /healthcheck
-    php --version \
-    \
-;
+    php --version
