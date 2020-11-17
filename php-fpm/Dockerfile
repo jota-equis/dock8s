@@ -17,6 +17,7 @@ RUN set -eux; \
         libxpm-dev \
         libonig-dev \
         libzip-dev \
+	libzstd-dev \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
     \
