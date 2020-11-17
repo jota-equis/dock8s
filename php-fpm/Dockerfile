@@ -1,16 +1,14 @@
 FROM php:7.4-fpm
 
-ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
-ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
+#ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
+#ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
     cd "$PHP_INI_DIR"; \
 	[ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
-    cd - \
-;
-
-RUN set -eux; \
+    cd -; \
+    \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		nano \
@@ -72,6 +70,15 @@ RUN set -eux; \
     docker-php-ext-enable apcu; \
     docker-php-ext-enable opcache; \
     \
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
+    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
+    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
+    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
+    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
+    RESULT=$?; \
+    php -r "unlink('composer-setup.php');"; \
+    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
+    \
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
 	find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -84,27 +91,11 @@ RUN set -eux; \
 	; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*; \
     \
-    php --version \
-;
-
-RUN set -eux; \
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
-    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
-    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
-    [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
-    php composer-setup.php --quiet --install-dir=/usr/local/bin; \
-    RESULT=$?; \
-    php -r "unlink('composer-setup.php');"; \
-    [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
-;
-
-#RUN echo '#!/bin/bash' > /healthcheck && \
+#   echo '#!/bin/bash' > /healthcheck && \
 #	echo 'env -i SCRIPT_NAME=/health SCRIPT_FILENAME=/health REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1' >> /healthcheck && \
 #	chmod +x /healthcheck
-
-RUN set -eux; \
-    apt-get autoremove -y; \
-    apt-get clean; \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    php --version \
+    \
 ;
