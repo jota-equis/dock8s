@@ -1,12 +1,27 @@
 FROM php:7.4-fpm
 
+ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
+ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
+
 RUN set -eux; \
-    savedAptMark="$(apt-mark showmanual)"; \
+    [ -d /var/www/html ] && chmod 0751 /var/www/html; \
+    cd "$PHP_INI_DIR"; \
+	[ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
+    cd - \
+;
+
+RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		nano \
         procps \
-        wget \
+    ; \
+    rm -rf /var/lib/apt/lists/*;
+
+RUN set -eux; \
+    savedAptMark="$(apt-mark showmanual)"; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev \
         libmcrypt-dev \
         libfreetype6-dev \
@@ -17,9 +32,26 @@ RUN set -eux; \
         libxpm-dev \
         libonig-dev \
         libzip-dev \
-	libzstd-dev \
+	    libzstd-dev \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
+    \
+    printf "\n" | pecl install apcu; \
+    \
+    pecl install igbinary; \
+    \
+    pecl install --onlyreqdeps --nobuild redis; \
+    \
+    cd "$(pecl config-get temp_dir)/redis"; \
+    phpize; \
+    ./configure \
+        --enable-redis-igbinary \
+        --enable-redis-zstd \
+    ; \
+    make && make install; \
+    cd -; \
+    \
+    rm -rf /tmp/pear ~/.pearrc; \
     \
     docker-php-ext-configure gd \
         --with-jpeg \
@@ -33,23 +65,12 @@ RUN set -eux; \
         pdo \
         pdo_mysql \
     ; \
-    \
-    printf "\n" | pecl install apcu; \
-    pecl install igbinary; \
-    pecl install --onlyreqdeps --nobuild redis; \
-    cd "$(pecl config-get temp_dir)/redis"; \
-    phpize; \
-    ./configure \
-        --enable-redis-igbinary \
-        --enable-redis-zstd \
-    ; \
-    make && make install; \
-    \
+	\
+# enable zstd ?
     docker-php-ext-enable igbinary; \
     docker-php-ext-enable redis; \
-    cd -; \
-    \
-    rm -rf /tmp/pear ~/.pearrc; \
+    docker-php-ext-enable apcu; \
+    docker-php-ext-enable opcache; \
     \
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
@@ -62,20 +83,14 @@ RUN set -eux; \
 		| xargs -r apt-mark manual \
 	; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-	\
-    docker-php-ext-enable opcache; \
-    docker-php-ext-enable apcu; \
-    docker-php-ext-enable redis; \
-    docker-php-ext-enable igbinary; \
+    apt-get clean; \
     \
-    php --version; \
-    \
-    [ -d /var/www/html ] && chmod 0751 /var/www/html \
+    php --version \
 ;
 
 RUN set -eux; \
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
-    EXPECTED_CHECKSUM="$(wget -q -O - https://composer.github.io/installer.sig)"; \
+    EXPECTED_CHECKSUM="$(curl -s https://composer.github.io/installer.sig)"; \
     ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"; \
     [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ] && { >&2 echo 'ERROR: Invalid installer checksum'; rm composer-setup.php; exit 1; }; \
     php composer-setup.php --quiet --install-dir=/usr/local/bin; \
@@ -84,16 +99,11 @@ RUN set -eux; \
     [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*) \
 ;
 
-ADD conf.d/php.ini /usr/local/etc/php/
-ADD conf.d/www.conf /usr/local/etc/php-fpm.d/
-
 #RUN echo '#!/bin/bash' > /healthcheck && \
 #	echo 'env -i SCRIPT_NAME=/health SCRIPT_FILENAME=/health REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1' >> /healthcheck && \
 #	chmod +x /healthcheck
 
 RUN set -eux; \
-    cd /usr/local/etc/php; \
-	[ -s php.ini ] || cp -ax php.ini-production php.ini; \
     apt-get autoremove -y; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
