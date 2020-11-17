@@ -1,2 +1,2 @@
-# k8s
-kubernetes tests
+# dock8s
+Hardened docker files and kubernetes deployments on steroids!
