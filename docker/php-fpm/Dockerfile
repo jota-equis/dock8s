@@ -6,10 +6,13 @@ ENV LANG="$LOCALE.UTF-8" LANGUAGE="$LOCALE:$COUNTRY" LC_ALL="$LOCALE.UTF-8"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
+    echo "tz: $TZ"; \
+    echo "locale: $LOCALE"; \
+    echo "lang: $LANG"; \
 	echo "$TZ" > /etc/timezone; \
     echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
     echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
-    ln -sf "/usr/share/zoneinfo/$K" /etc/localtime; \
+    ln -sf "/usr/share/zoneinfo/$TZ" /etc/localtime; \
     \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
     \
