@@ -1,15 +1,14 @@
-ARG LANG
-ARG LANGUAGE
-ARG TZ
+ARG L10N_LANG
+ARG L10N_TZ
 
 FROM php:7.4-fpm
 
-ENV LANG="$LANG.UTF-8" LANGUAGE="$LANGUAGE:$TZ" LC_ALL="$LANG.UTF-8" TZ="$TZ"
+ENV LANG="${L10N_LANG}_${L10N_LANG^^}.UTF-8" LANGUAGE="${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}" LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_LANG}"
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
-    echo "tz: $TZ"; \
+    echo "tz: ${TZ}"; \
     echo "language: $LANGUAGE"; \
     echo "lang: $LANG"; \
 	echo "$TZ" > /etc/timezone; \
@@ -28,7 +27,7 @@ RUN set -eux; \
 		nano \
         procps \
     ; \
-    locale-gen --purge en en_US.UTF-8 "$COUNTRY" "$LANG"; \
+    locale-gen --purge en en_US.UTF-8 "${L10N_LANG}" "${L10N_LANG}_${L10N_LANG^^}"; \
     rm -rf /var/lib/apt/lists/*;
 
 RUN set -eux; \
