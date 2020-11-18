@@ -1,10 +1,18 @@
 FROM php:7.4-fpm
 
+ENV LANG="$LOCALE.UTF-8" LANGUAGE="$LOCALE:$COUNTRY" LC_ALL="$LOCALE.UTF-8"
+
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
+	echo "$TZ" > /etc/timezone; \
+    echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
+    echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
+    ln -sf "/usr/share/zoneinfo/$K" /etc/localtime; \
+    \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
+    \
     cd "$PHP_INI_DIR"; \
 	[ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
     cd -; \
@@ -14,6 +22,7 @@ RUN set -eux; \
 		nano \
         procps \
     ; \
+    locale-gen --purge en en_US.UTF-8 "$COUNTRY" "$LANG"; \
     rm -rf /var/lib/apt/lists/*;
 
 RUN set -eux; \
@@ -31,6 +40,7 @@ RUN set -eux; \
         libonig-dev \
         libzip-dev \
 	    libzstd-dev \
+        localepurge \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
     \
