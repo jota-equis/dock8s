@@ -1,7 +1,7 @@
+FROM php:7.4-fpm
+
 ARG L10N_LANG
 ARG L10N_TZ
-
-FROM php:7.4-fpm
 
 #ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
 #ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
@@ -15,7 +15,7 @@ ENV TZ $L10N_TZ
 
 RUN set -eux; \
     echo "tz: ${TZ}"; \
-    echo "lang: $LANG"; \
+    echo "lang: ${LANG}"; \
     echo "language: ${LANG}_${LANG^^}.UTF-8"; \
     echo "locale: ${LANG}_${LANG^^}:$LANG"; \
 	echo "$TZ" > /etc/timezone; \
