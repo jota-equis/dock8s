@@ -1,9 +1,15 @@
 ARG L10N_LANG
 ARG L10N_TZ
 
-ENV LANG="${L10N_LANG}_${L10N_LANG^^}.UTF-8" LANGUAGE="${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}" LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
-
 FROM php:7.4-fpm
+MAINTAINER equis "jota.dev.src@gmail.com"
+
+ARG L10N_LANG
+ARG L10N_TZ
+
+ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
+ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
+ENV LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
 
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
