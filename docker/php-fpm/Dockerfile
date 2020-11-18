@@ -2,22 +2,22 @@ ARG L10N_LANG
 ARG L10N_TZ
 
 FROM php:7.4-fpm
-MAINTAINER equis "jota.dev.src@gmail.com"
 
-ARG L10N_LANG
-ARG L10N_TZ
+#ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
+#ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
+#ENV LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
 
-ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
-ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
-ENV LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
+ENV LANG $L10N_LANG
+ENV TZ $L10N_TZ
 
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
     echo "tz: ${TZ}"; \
-    echo "language: $LANGUAGE"; \
     echo "lang: $LANG"; \
+    echo "language: ${LANG}_${LANG^^}.UTF-8"; \
+    echo "locale: ${LANG}_${LANG^^}:$LANG"; \
 	echo "$TZ" > /etc/timezone; \
     echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
     echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
