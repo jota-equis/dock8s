@@ -1,13 +1,16 @@
+ARG LANG
+ARG LANGUAGE
+ARG TZ
+
 FROM php:7.4-fpm
 
-ENV LANG="$LOCALE.UTF-8" LANGUAGE="$LOCALE:$COUNTRY" LC_ALL="$LOCALE.UTF-8" TZ="$TZ"
-
+ENV LANG="$LANG.UTF-8" LANGUAGE="$LANGUAGE:$TZ" LC_ALL="$LANG.UTF-8" TZ="$TZ"
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
     echo "tz: $TZ"; \
-    echo "locale: $LOCALE"; \
+    echo "language: $LANGUAGE"; \
     echo "lang: $LANG"; \
 	echo "$TZ" > /etc/timezone; \
     echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
