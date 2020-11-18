@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  php-fpm:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+#      args:
+#        some_variable_name: a_value
+#    depends_on:
+#      - redis
+#    hostname: php-fpm
+#    container_name: php-fpm7.4
+#    volumes:
+#      - ./configs:/cfgs
+#    env_file: .env
+#
+#  redis:
+#    image: redis:latest
