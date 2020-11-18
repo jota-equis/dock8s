@@ -1,14 +1,13 @@
 FROM php:7.4-fpm
 
-ARG L10N_LANG
-ARG L10N_TZ
+ARG LANG
+ARG TZ
 
 #ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
 #ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
 #ENV LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
 
-ENV LANG $L10N_LANG
-ENV TZ $L10N_TZ
+ENV LANG="$LANG" TZ="TZ"
 
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
