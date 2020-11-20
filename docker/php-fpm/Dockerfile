@@ -10,11 +10,6 @@ ENV LANG=en_US.UTF-8 \
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
-    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
-    [ -z "${LANG}" ] || echo "${LANG}" >> /etc/locale.gen; \
-    locale-gen; \
-    echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
-    \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
     \
     cd "$PHP_INI_DIR"; \
@@ -23,10 +18,9 @@ RUN set -eux; \
     \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-		nano \
+	    nano \
         procps \
     ; \
-    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
     rm -rf /var/lib/apt/lists/*;
 
 RUN set -eux; \
@@ -45,8 +39,14 @@ RUN set -eux; \
         libzip-dev \
 	    libzstd-dev \
         localepurge \
+        locales \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
+    \
+    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
+    [[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
+    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
+    echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
     \
     printf "\n" | pecl install apcu; \
     \
