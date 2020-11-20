@@ -1,9 +1,11 @@
 FROM php:7.4-fpm
-#ENV LANG="en_US.UTF-8" \
-#    LANGUAGE="en_US:en" \
-#    LC_ALL="en_US.UTF-8" \
-#    LC_MESSAGES="POSIX" \
-#    LC_COLLATE="C"
+
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8" \
+    LC_MESSAGES="POSIX" \
+    LC_COLLATE="C"
+
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
@@ -36,15 +38,15 @@ RUN set -eux; \
         libonig-dev \
         libzip-dev \
         libzstd-dev \
-#        localepurge \
-#        locales \
+        localepurge \
+        locales \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
     \
-#    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
-#    [[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
-#    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
-#    echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
+    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
+    [[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
+    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
+    echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
     \
     printf "\n" | pecl install apcu; \
     \
@@ -99,7 +101,7 @@ RUN set -eux; \
         | sort -u \
         | xargs -r apt-mark manual \
     ; \
-#    localepurge; \
+    localepurge; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/* ~/.pearrc; \
