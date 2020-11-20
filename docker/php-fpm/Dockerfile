@@ -1,10 +1,10 @@
 FROM php:7.4-fpm
 
-ENV LANG=en_US.UTF-8 \
-    LANGUAGE=en_US:en \
-    LC_ALL=en_US.UTF-8 \
-    LC_MESSAGES=POSIX \
-    LC_COLLATE=C
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8" \
+    LC_MESSAGES="POSIX" \
+    LC_COLLATE="C"
 
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
