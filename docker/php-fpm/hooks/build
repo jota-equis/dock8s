@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-docker build . \
-    --build-arg LANG=${LANG} \
-    --build-arg TZ=${TZ} \
-    -t ${IMAGE_NAME}
