@@ -1,0 +1,15 @@
+# Composer files #
+composer.phar
+vendor/
+
+# Swap Files #
+.*.kate-swp
+.swp.*
+
+# Tmp Data #
+data/log/
+data/cache/
+data/sessions/
+data/tmp/
+temp/
+tmp/
