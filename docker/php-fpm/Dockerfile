@@ -16,9 +16,9 @@ RUN set -eux; \
 	[ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
     cd -; \
     \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-	    nano \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        nano \
         procps \
     ; \
     rm -rf /var/lib/apt/lists/*;
@@ -37,7 +37,7 @@ RUN set -eux; \
         libxpm-dev \
         libonig-dev \
         libzip-dev \
-	    libzstd-dev \
+        libzstd-dev \
         localepurge \
         locales \
     ; \
@@ -91,18 +91,18 @@ RUN set -eux; \
     php -r "unlink('composer-setup.php');"; \
     [ "${RESULT}" -eq "0" ] && (cd /usr/local/bin/;ln -s composer.phar composer;chmod 0751 composer*); \
     \
-	apt-mark auto '.*' > /dev/null; \
-	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
-	find /usr/local -type f -executable -exec ldd '{}' ';' \
-		| awk '/=>/ { print $(NF-1) }' \
-		| sort -u \
-		| xargs -r dpkg-query --search \
-		| cut -d: -f1 \
-		| sort -u \
-		| xargs -r apt-mark manual \
-	; \
+    apt-mark auto '.*' > /dev/null; \
+    [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
+    find /usr/local -type f -executable -exec ldd '{}' ';' \
+        | awk '/=>/ { print $(NF-1) }' \
+        | sort -u \
+        | xargs -r dpkg-query --search \
+        | cut -d: -f1 \
+        | sort -u \
+        | xargs -r apt-mark manual \
+    ; \
     localepurge; \
-	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/* ~/.pearrc; \
     \
