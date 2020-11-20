@@ -1,27 +1,19 @@
 FROM php:7.4-fpm
 
-ARG LANG
-ARG TZ
-
-#ENV LANG "${L10N_LANG}_${L10N_LANG^^}.UTF-8"
-#ENV LANGUAGE "${L10N_LANG}_${L10N_LANG^^}:${L10N_LANG}"
-#ENV LC_ALL="${L10N_LANG}_${L10N_LANG^^}.UTF-8" TZ="${L10N_TZ}"
-
-ENV LANG="$LANG" TZ="$TZ"
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8 \
+    LC_MESSAGES=POSIX \
+    LC_COLLATE=C
 
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
-    export LOCALE=${LANG^^}; \
-    echo "tz: ${TZ}"; \
-    echo "lang: ${LANG}"; \
-    echo "language: ${LANG} _ ${LOCALE} .UTF-8"; \
-    echo "locale: ${LANG}_${LOCALE}$LANG"; \
-	echo "$TZ" > /etc/timezone; \
-    echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
+    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
+    [ -z "${LANG}" ] || echo "${LANG}" >> /etc/locale.gen; \
+    locale-gen; \
     echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
-    ln -sf "/usr/share/zoneinfo/$TZ" /etc/localtime; \
     \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
     \
@@ -34,7 +26,7 @@ RUN set -eux; \
 		nano \
         procps \
     ; \
-    locale-gen --purge en en_US.UTF-8 "${L10N_LANG}" "${L10N_LANG}_${L10N_LANG^^}"; \
+    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
     rm -rf /var/lib/apt/lists/*;
 
 RUN set -eux; \
@@ -109,6 +101,7 @@ RUN set -eux; \
 		| sort -u \
 		| xargs -r apt-mark manual \
 	; \
+    localepurge; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/* ~/.pearrc; \
