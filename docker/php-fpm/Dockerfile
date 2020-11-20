@@ -13,10 +13,11 @@ ENV LANG="$LANG" TZ="$TZ"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
 RUN set -eux; \
+    export LOCALE=${LANG^^}; \
     echo "tz: ${TZ}"; \
     echo "lang: ${LANG}"; \
-    echo "language: ${LANG} _ ${LANG^^} .UTF-8"; \
-    echo "locale: ${LANG}_${LANG^^}$LANG"; \
+    echo "language: ${LANG} _ ${LOCALE} .UTF-8"; \
+    echo "locale: ${LANG}_${LOCALE}$LANG"; \
 	echo "$TZ" > /etc/timezone; \
     echo "$LANG UTF-8" > /etc/locale.gen && locale-gen; \
     echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
