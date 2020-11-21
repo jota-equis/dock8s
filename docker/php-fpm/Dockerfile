@@ -42,8 +42,8 @@ RUN set -eux; \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
     \
-    echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
-    [[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
+    #echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
+    #[[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
     #locale-gen --purge; \
     \
     printf "\n" | pecl install apcu; \
