@@ -29,7 +29,6 @@ data:
     clear_env = yes
     security.limit_extensions = .php
 
-    process.priority = -19
     rlimit_files = 131072
     rlimit_core = unlimited
 
