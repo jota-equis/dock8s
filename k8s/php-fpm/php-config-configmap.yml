@@ -10,43 +10,43 @@ data:
   php-fpm.conf: |-
     [global]
     daemonize = no
-    listen = 9000
     pid = run/php-fpm.pid
-    
-    process.priority = -19
-    rlimit_files = 131072
-    rlimit_core = unlimited
-    security.limit_extensions = .php
-    clear_env = yes
-    
+
     ; https://github.com/docker-library/php/pull/725#issuecomment-443540114
     log_limit = 8192
-    access.log = /proc/self/fd/2
     error_log = /proc/self/fd/2
-    
-    catch_workers_output = yes
-    decorate_workers_output = no
-    
-    env[PATH] = /usr/local/bin
-    
-    php_flag[display_errors] = off
-    
+
     include=etc/php-fpm.d/*.conf
   www.conf: |-
     [www]
     user = www-data
     group = www-data
-    clear_env = no
+
+    listen = 9000
+
+    access.log = /proc/self/fd/2
+
+    clear_env = yes
+    security.limit_extensions = .php
+
+    process.priority = -19
+    rlimit_files = 131072
+    rlimit_core = unlimited
+
+    catch_workers_output = yes
+    decorate_workers_output = no
+
     pm = static
     pm.max_children = 10
     pm.max_requests = 500
-    
+
     ;env[HOSTNAME] = $HOSTNAME
     ;env[PATH] = /usr/local/bin:/usr/bin:/bin
     ;env[TMP] = /tmp
     ;env[TMPDIR] = /tmp
     ;env[TEMP] = /tmp
-    
+
+    php_flag[display_errors] = off
     ;php_admin_value[error_log] = /var/log/fpm-php.www.log
     ;php_admin_flag[log_errors] = on
     ;php_admin_value[memory_limit] = 32M
