@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: svc
+  name: php-fpm
+  labels:
+    app: php
+    tier: backend
+spec:
+  replicas: 2
+  serviceName: php-fpm
+  selector:
+    matchLabels:
+      app: php
+      tier: backend
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: php
+        tier: backend
+    spec:
+      containers:
+      - name: php-fpm
+        image: equis/php-fpm
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 125m
+            memory: 256Mi
+        volumeMounts:
+        - name: vol-php-config
+          mountPath: /usr/local/etc/php-fpm.conf
+          subPath: php-fpm.conf
+          readOnly: true
+        - name: vol-php-config
+          mountPath: /usr/local/etc/php-fpm.d/www.conf
+          subPath: www.conf
+        - name: vol-php-module
+          mountPath: /usr/local/etc/php/conf.d
+          subPath: ..data
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+        readinessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - _type: configMap
+        name: vol-php-config
+        configMap:
+          name: php-config
+          defaultMode: 0640
+          optional: false
+      - _type: configMap
+        name: vol-php-module
+        configMap:
+          name: php-modules
+          defaultMode: 0640
+          optional: false
