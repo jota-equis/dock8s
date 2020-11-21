@@ -45,7 +45,7 @@ RUN set -eux; \
     \
     echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
     [[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
-    locale-gen --purge en en_US.UTF-8 "${LANG}"; \
+    locale-gen --purge; \
     echo -e "USE_DPKG\nMANDELETE\nDONTBOTHERNEWLOCALE" > /etc/locale.nopurge; \
     \
     printf "\n" | pecl install apcu; \
@@ -101,7 +101,7 @@ RUN set -eux; \
         | sort -u \
         | xargs -r apt-mark manual \
     ; \
-    localepurge; \
+    #localepurge; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/* ~/.pearrc; \
