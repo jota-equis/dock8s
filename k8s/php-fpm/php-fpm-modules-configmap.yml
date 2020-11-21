@@ -38,13 +38,4 @@ data:
     extension = redis.so
   25-apcu_bc.ini: |-
     '# extension = apc.so'
-  www.conf: |-
-    [www]
-    user = www-data
-    group = www-data
-    listen = 127.0.0.1:9000
-
-    pm = static
-    pm.max_children = 10
-    pm.max_requests = 500
 immutable: false
