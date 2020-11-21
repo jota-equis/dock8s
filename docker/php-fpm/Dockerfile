@@ -1,11 +1,5 @@
 FROM php:7.4-fpm
 
-#ENV LANG="en_US.UTF-8" \
-#    LANGUAGE="en_US:en" \
-#    LC_ALL="en_US.UTF-8" \
-#    LC_MESSAGES="POSIX" \
-#    LC_COLLATE="C"
-
 #ADD conf.d/php.ini "$PHP_INI_DIR/php.ini.tpl"
 #ADD conf.d/www.conf "$PHP_INI_DIR/../php-fpm.d/"
 
@@ -13,9 +7,9 @@ RUN set -eux; \
     [ -d /var/www/html ] && chmod 0751 /var/www/html; \
     \
     cd "$PHP_INI_DIR"; \
-	[ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
-    cd -; \
-    \
+        [ -s php.ini.tpl ] mv -f php.ini.tpl php.ini || { cp -afx php.ini-production php.ini; rm -f php.ini.tpl; }; \
+        cd - \
+    ; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         nano \
@@ -41,10 +35,6 @@ RUN set -eux; \
         locales \
     ; \
 	rm -rf /var/lib/apt/lists/*; \
-    \
-    #echo -e "en\nen_US.UTF-8" > /etc/locale.gen; \
-    #[[ -z "${LANG}" || "${LANG}" = "en" || "${LANG}" = "en_US.UTF-8" ]] || echo "${LANG}" >> /etc/locale.gen; \
-    #locale-gen --purge; \
     \
     printf "\n" | pecl install apcu; \
     \
