@@ -36,6 +36,9 @@ data:
     extension = pdo_mysql.so
   20-redis.ini: |-
     extension = redis.so
+    
+    session.save_handler = redis
+    tcp://redis:6379
   25-apcu_bc.ini: |-
     '# extension = apc.so'
 immutable: false
