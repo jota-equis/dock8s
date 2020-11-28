@@ -1,0 +1,13 @@
+[mysqld]
+log-bin                                = ${MARIADB_LOGBIN}/mysql-bin.log
+log-bin-index                          = ${MARIADB_LOGBIN}/mysql-bin.log.index
+relay-log                              = ${MARIADB_LOGBIN}/mysql-relay.bin
+relay-log-index                        = ${MARIADB_LOGBIN}/mysql-relay.bin.index
+log-slave-updates                      = ON
+log-slow-slave-statements              = ON
+expire-logs-days                       = 3
+max-binlog-size                        = 256M
+binlog-format                          = ROW
+gtid-mode                              = ON
+enforce-gtid-consistency               = ON
+server_id                              = ${GALERA_SERVERID}
