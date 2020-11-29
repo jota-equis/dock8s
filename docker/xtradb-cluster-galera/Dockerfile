@@ -11,19 +11,19 @@ RUN set -eux; \
     -d /srv/mysql \
     mysql; \
   \
-  chown -R mysql:mysql \
+  chown -R 3306:3306 \
     /srv/mysql \
-    /srv/scripts \
+    > /dev/null 2>&1 \
   ; \
   chmod 0750 \
     /srv/mysql \
-    /srv/mysql/bin/* \
-    /srv/scripts \
-    /srv/scripts/* \
+    /srv/mysql/{bin,bin/docker,etc,log,logbin,sql} \
+    /srv/mysql/{bin,bin/docker}/* \
   ; \
   find /srv/mysql/etc -type f -exec chmod 0640 {} + \
-  ; \
-  \
+;
+
+RUN set -eux; \
   export \
     DEBIAN_FRONTEND=noninteractive \
     MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-}" \
@@ -93,13 +93,17 @@ RUN set -eux; \
     percona-xtradb-cluster-common-5.7 \
   ; \
   \
-  [[ -d "/srv/mysql/data/lost+found" && rm -Rf /srv/mysql/data/lost+found; \
   apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
   apt-get clean; \
-  rm -Rf /var/lib/apt/lists/* /var/tmp/* /tmp/* /var/lib/mysql/* \
+  rm -Rf \
+    /var/lib/apt/lists/* \
+    /var/cache/apt/archives/* \
+    /var/tmp/* \
+    /tmp/* \
+    /var/lib/mysql/* \
 ;
 
-USER mysql
+USER 3306
 
 EXPOSE 3306 4444 4567 4568
 
