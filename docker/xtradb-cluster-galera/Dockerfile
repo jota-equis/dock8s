@@ -93,6 +93,7 @@ RUN set -eux; \
     percona-xtradb-cluster-common-5.7 \
   ; \
   \
+  [[ -d "/srv/mysql/data/lost+found" && rm -Rf /srv/mysql/data/lost+found; \
   apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
   apt-get clean; \
   rm -Rf /var/lib/apt/lists/* /var/tmp/* /tmp/* /var/lib/mysql/* \
