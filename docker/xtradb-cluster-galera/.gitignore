@@ -2,3 +2,5 @@ local/
 
 *.kate-swp
 *.swp
+
+mk-docker-image.sh

@@ -50,10 +50,7 @@ for i in {1..30}; do
   sleep 2
 done
 
-if [ $i -eq 30 ]; then
-  echo "$(date +"%Y-%m-%dT%H:%M:%S.%6NZ") 1 [Error] Failed to initialize"
-  exit 1
-fi
+[[ $i -eq 30 ]] && logerror "Failed to initialize";
 
 if $(/usr/bin/mysqladmin -S $MARIADB_SOCK -u root password "${MYSQL_ROOT_PASSWORD}" 2>/dev/null) ; then
     write_user_conf
@@ -84,8 +81,6 @@ until [ $(pgrep -c mysqld) -eq 0 ]; do sleep 1; done
 1)
     logmsg "This is the first node in a stateful set, it has no grant tables, no other cluster nodes are up and is set to start from backup";
     logerror "Failed :: Restore from backup not yet supported!";
-fi
-
 ;;
 
 2)
@@ -107,7 +102,7 @@ fi
 
 trap 'kill ${!}; term_handler' SIGKILL SIGTERM SIGHUP SIGINT EXIT
 
-echo "$(date +"%Y-%m-%dT%H:%M:%S.%6NZ") 0 [Info] Starting MySQL"
+logmsg "Starting MySQL"
 eval "mysqld --defaults-file=$MARIADB_CNF --datadir=$MARIADB_DATA --user=$MARIADB_USER $BOOTARGS 2>&1 &"
 
 CUR_PID="$!"
