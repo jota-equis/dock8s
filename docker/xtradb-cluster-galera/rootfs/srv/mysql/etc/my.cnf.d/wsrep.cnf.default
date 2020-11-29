@@ -10,5 +10,5 @@ wsrep_cluster_name                    = ${GALERA_CLUSTER_NAME}
 wsrep_node_name                       = ${GALERA_NODE_NAME}
 wsrep_sst_method                      = ${GALERA_SST_METHOD}
 wsrep_sst_auth                        = "${GALERA_REPLICATION_USER}:${GALERA_REPLICATION_PASSWORD}"
-wsrep_slave_threads                   = ${GALERA_CPU_TRHEADS}
+wsrep_slave_threads                   = ${GALERA_CPU_THREADS}
 wsrep_provider_options                = 'gcache.size=128M;gcache.recover=yes'
