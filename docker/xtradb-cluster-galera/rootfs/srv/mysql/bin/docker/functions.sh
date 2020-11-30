@@ -27,11 +27,7 @@ function mk_appdir ()
 
     mkdir -pm0750 $MARIADB_CONFIG_EXTRA $MARIADB_DATA $MARIADB_BIN $MARIADB_LOG \
     $MARIADB_LOGBIN $MARIADB_SQL $MARIADB_TMP $GALERA_BACKUP $GALERA_BOOTSTRAP;
-    
-    #ln -s /run/mysqld $MARIADB_RUN;
 
-    # chown $MARIADB_UID:$MARIADB_GID $MARIADB_ROOT;
-    
     clean_prev;
 }
 
@@ -110,107 +106,140 @@ function add_peers ()
     done
 }
 
+function bootstrap_master_node ()
+{
+	logmsg "This is the first node in a stateful set and it has no grant tables and no other nodes are up - initialize";
+
+	bak_save_file "${MARIADB_CONFIG_EXTRA}/wsrep.cnf";
+
+	db_initialize;
+	setup_users;
+
+	logmsg "Finishing database initialization";
+	killall mysqld && until [ $(pgrep -c mysqld) -eq 0 ]; do sleep 1; done
+
+	logmsg "Master node db bootstrap done. MySQL shutdown";
+	
+	bak_restore_file "${MARIADB_CONFIG_EXTRA}/wsrep.cnf";
+}
+
+function bootstrap_child_node ()
+{
+	logmsg "This is not the first node in a stateful set and has no grant tables and at least one node is up - SST"
+
+	db_delete_data 1;
+
+	write_user_conf;
+}
+
+function bak_save_file ()
+{
+    local F="${1:-}";
+    [[ -f "${F}" ]] && cp -afx "${F}" "${F}.bak";
+}
+
+function bak_restore_file ()
+{
+    local F="${1:-}";
+    [[ -f "${F}.bak" ]] && mv "${F}.bak" "${F}";
+}
+
+function db_delete_data ()
+{
+	[[ "${1:-0}" -eq 1 ]] && rm -Rf "${MARIADB_DATA}/*";
+}
+
+function db_initialize ()
+{
+	logmsg "Initializing database";
+
+	db_delete_data 1;
+
+	mysqld --initialize-insecure \
+		--datadir=${MARIADB_DATA} \
+		--user=${MARIADB_USER};
+		
+	db_initialize_check;
+	write_user_conf;
+}
+
+function db_initialize_check ()
+{
+	mysqld --defaults-file=${MARIADB_CNF} \
+		--datadir=${MARIADB_DATA} \
+		--log-error=${MARIADB_LOG}/mysqld.log \
+		--user=${MARIADB_USER} \
+		--skip-networking &
+
+	for I in {1..30}; do
+		$(mysql -u root -S ${MARIADB_SOCK} -Nse "SELECT 1;" > /dev/null 2>&1) && break || sleep 2;
+	done
+
+	[[ ${I} -eq 30 ]] && logerror "Failed to initialize database";
+
+	$(/usr/bin/mysqladmin -S ${MARIADB_SOCK} -u root password "${MARIADB_ROOT_PASSWORD}" 2>/dev/null) || logerror "Failed to initialize root password";
+}
+
 function init_config ()
 {
     mk_newconf;
     add_peers;
     
-    if [ is_master_node ] && [ ! is_data_populated ] && [ ! is_cluster_up ]; then
-        CUR_STATUS=0
-logmsg "STATUS 0 = ${CUR_STATUS}"
-        [[ "${STARTFROMBACKUP}" = "true" && -d "${GALERA_BACKUP}" ]] && CUR_STATUS=1
-    elif [ is_cluster_up ] && [ ! is_data_populated ]; then
-        CUR_STATUS=2
-logmsg "STATUS 2 = ${CUR_STATUS}"
-    elif [ is_data_populated ]; then
-        CUR_STATUS=3
-logmsg "STATUS 3 = ${CUR_STATUS}"
+	local S=${CUR_STATUS:-0}
+	
+    if [[ is_master_node && ! is_data_populated && ! is_cluster_up ]]; then
+        S=0
+logmsg "STATUS 0 = ${S}";
+		bootstrap_master_node;
+
+        [[ ${STARTFROMBACKUP} = "true" && -d ${GALERA_BACKUP} ]] && S=1
+    elif [[ is_cluster_up && ! is_data_populated ]]; then
+        S=2
+logmsg "STATUS 2 = ${S}"
+		bootstrap_child_node;
+
+    elif [[ is_data_populated ]]; then
+        S=3
+logmsg "STATUS 3 = ${S}"
+		logmsg "Grant tables are present just attempt a start"
+		write_user_conf
+	else
+		if [[ ${S} = -1 ]]; then
+			logerror "ENV variables not set correctly or cluster down and this is not node-0" 1;
+			logerror "need at least:" 1;
+			logerror " · MARIADB_ROOT_PASSWORD=<password of root user>" 1;
+			logerror " · SSTUSER_PASSWORD=<password for SST user>" 1;
+			logerror " · CLUSTER_NAME=<name of cluster>";
+		else
+			logerror "Unknown CUR_STATUS. Aborting";
+		fi
     fi
 
-    if [ $CUR_STATUS -eq -1 ]; then
-        logerror "ENV variables not set correctly or cluster down and this is not node-0" 1;
-        logerror "need at least:" 1;
-        logerror " · MARIADB_ROOT_PASSWORD=<password of root user>" 1;
-        logerror " · SSTUSER_PASSWORD=<password for SST user>" 1;
-        logerror " · CLUSTER_NAME=<name of cluster>";
-    fi
+	export CUR_STATUS=${S:--1}
 logmsg "STATUS INIT = ${CUR_STATUS}"
-    init_node "$CUR_STATUS";
 }
 
 function init_node ()
 {
 logmsg "INIT MODE STATUS = ${1:-} - ${CUR_STATUS}"
-    case "${1:-}" in
-        0)
-            logmsg "This is the first node in a stateful set and it has no grant tables and no other nodes are up - initialize"
-            mv $MARIADB_CONFIG_EXTRA/wsrep.cnf $MARIADB_CONFIG_EXTRA/wsrep.cnf.bak
-            rm -Rf $MARIADB_DATA/*
 
-            mysqld --initialize-insecure --datadir=$MARIADB_DATA/ --user=$MARIADB_USER
-            mysqld --defaults-file=$MARIADB_CNF --user=$MARIADB_USER --datadir=$MARIADB_DATA/ --skip-networking --log-error=$MARIADB_LOG/mysqld.log &
-
-            for i in {1..30}; do
-                if $(mysql -u root -S $MARIADB_SOCK -Nse "SELECT 1;" > /dev/null 2>&1) ; then
-                    break
-                fi
-                sleep 2
-            done
-
-            [[ $i -eq 30 ]] && logerror "Failed to initialize";
-
-            if $(/usr/bin/mysqladmin -S $MARIADB_SOCK -u root password "${MARIADB_ROOT_PASSWORD}" 2>/dev/null) ; then
-                write_user_conf
-            else
-                logerror "Failed to set root password";
-            fi
-
-            setup_users;
-
-            killall mysqld
-
-            until [ $(pgrep -c mysqld) -eq 0 ]; do sleep 1; done
-
-            logmsg "MySQL shutdown"
-
-            mv $MARIADB_CONFIG_EXTRA/wsrep.cnf.bak $MARIADB_CONFIG_EXTRA/wsrep.cnf
-        ;;
-
-        1)
-            logmsg "This is the first node in a stateful set, it has no grant tables, no other cluster nodes are up and is set to start from backup";
-            logerror "Failed :: Restore from backup not yet supported!";
-        ;;
-
-        2)
-            logmsg "This is not the first node in a stateful set and has no grant tables and at least one node is up - SST"
-            rm -rf $MARIADB_DATA/*
-
-            write_user_conf
-        ;;
-
-        3)
-            logmsg "Grant tables are present just attempt a start"
-            write_user_conf
-        ;;
-    esac;
-
-    if [ ! is_cluster_up ] && [ is_master_node ]; then
+    if [[ ! is_cluster_up && is_master_node ]]; then
         [[ -f ${GALERA_GRASTATE} ]] && sed -i "s/^safe_to_bootstrap.*$/safe_to_bootstrap: 1/g" ${GALERA_GRASTATE}
         BOOTARGS="--wsrep-new-cluster"
     fi
 
     trap 'kill ${!}; term_handler' SIGKILL SIGTERM SIGHUP SIGINT EXIT
     
-    run_service;
+    echo "BOOTARGS=${BOOTARGS}" > ${MARIADB_TMP}/bootargs;
 }
 
-function run_service ()
-{
-    logmsg "Starting MySQL"
-    eval "mysqld --defaults-file=$MARIADB_CNF --datadir=$MARIADB_DATA --user=$MARIADB_USER $BOOTARGS 2>&1 &"
-
-    CUR_PID="$!"
-}
+#function run_service ()
+#{
+#    logmsg "Starting MySQL"
+#    eval "mysqld --defaults-file=$MARIADB_CNF --datadir=$MARIADB_DATA --user=$MARIADB_USER $BOOTARGS 2>&1 &"
+#
+#    CUR_PID="$!"
+#}
 
 function set_sysusers_password ()
 {
