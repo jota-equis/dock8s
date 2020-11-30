@@ -4,17 +4,23 @@ collation_server                       = $MARIADB_COLLATE
 character_set_server                   = $MARIADB_CHARACTER_SET
 character_set_filesystem               = $MARIADB_CHARACTER_SET
 
+listen                                 = 0.0.0.0
+
 disable-partition-engine-check
 skip_name_resolve
 explicit_defaults_for_timestamp        = ON
+
 datadir                                = $MARIADB_DATA
 socket                                 = $MARIADB_PID
 pid-file                               = $MARIADB_SOCK
+
 long_query_time                        = 0.5
+
 slow_query_log                         = ON
 slow_query_log_file                    = $MARIADB_LOG/slow_query.log
 general_log_file                       = $MARIADB_LOG/general.log
 log_error_verbosity                    = 2
+
 innodb_flush_method                    = O_DIRECT
 join_buffer_size                       = 262144
 sort_buffer_size                       = 262144
