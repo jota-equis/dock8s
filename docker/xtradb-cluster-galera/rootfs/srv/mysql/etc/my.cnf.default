@@ -4,7 +4,7 @@ collation_server                       = $MARIADB_COLLATE
 character_set_server                   = $MARIADB_CHARACTER_SET
 character_set_filesystem               = $MARIADB_CHARACTER_SET
 
-listen                                 = 0.0.0.0
+bind-address                           = 0.0.0.0
 
 disable-partition-engine-check
 skip_name_resolve
