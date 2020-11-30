@@ -22,7 +22,7 @@ done
 
 [[ $i -eq 30 ]] && logerror "Failed to initialize";
 
-if $(/usr/bin/mysqladmin -S $MARIADB_SOCK -u root password "${MYSQL_ROOT_PASSWORD}" 2>/dev/null) ; then
+if $(/usr/bin/mysqladmin -S $MARIADB_SOCK -u root password "${MARIADB_ROOT_PASSWORD}" 2>/dev/null) ; then
     write_user_conf
 else
     logerror "Failed to set root password";

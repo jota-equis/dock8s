@@ -58,9 +58,14 @@ export GALERA_HOSTPREFIX=$(echo $(hostname) | rev | cut -d- -f2- | rev);
 
 export GALERA_CLUSTER_UP=0
 
-[[ -z "$GALERA_CLUSTER_NAME" ]] && export GALERA_CLUSTER_NAME=$(hostname -f | cut -s -d"." -f2)
+[[ -z "$GALERA_CLUSTER_NAME" ]] && GALERA_CLUSTER_NAME=$(hostname -f | cut -s -d"." -f2)
+export GALERA_CLUSTER_NAME
+
 [[ -z "$GALERA_CLUSTER_SIZE" ]] && GALERA_CLUSTER_PEERS=2 || GALERA_CLUSTER_PEERS=$((GALERA_CLUSTER_SIZE-1))
-[[ -z "$GALERA_CPU_THREADS" ]] && export GALERA_CPU_THREADS=$((CPU_THREADS*4)) || export GALERA_CPU_THREADS="$N"
+export GALERA_CLUSTER_PEERS
+
+[[ -z "$GALERA_CPU_THREADS" ]] && GALERA_CPU_THREADS=$((CPU_THREADS*4))
+export GALERA_CPU_THREADS
 
 export GALERA_CLUSTER_ADDR="gcomm://"
 export GALERA_SST_METHOD="xtrabackup-v2"

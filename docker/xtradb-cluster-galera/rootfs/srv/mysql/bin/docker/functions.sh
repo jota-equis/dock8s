@@ -121,7 +121,7 @@ function init_config ()
     if [ $CUR_STATUS -eq -1 ]; then
         logerror "ENV variables not set correctly or cluster down and this is not node-0" 1;
         logerror "need at least:" 1;
-        logerror " · MYSQL_ROOT_PASSWORD=<password of root user>" 1;
+        logerror " · MARIADB_ROOT_PASSWORD=<password of root user>" 1;
         logerror " · SSTUSER_PASSWORD=<password for SST user>" 1;
         logerror " · CLUSTER_NAME=<name of cluster>";
     fi
@@ -131,41 +131,7 @@ function init_config ()
 
 function init_node ()
 {
-
-}
-
-function setup_users ()
-{
-    set_sysusers_password;
-
-    logmsg "Setting up system users and securing defaults ...";
-
-    $((mysql -Ns) << EOF
-SET @@SESSION.SQL_LOG_BIN=0;
-
-GRANT ALL PRIVILEGES \
-  ON *.* TO 'root'@'%' IDENTIFIED BY '$MARIADB_ROOT_PASSWORD' WITH GRANT OPTION;
-
-GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT \
-  ON *.* TO 'xtrabackup'@'localhost' IDENTIFIED BY '$GALERA_REPLICATION_PASSWORD';
-
-GRANT SELECT, CREATE USER, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS, REPLICATION SLAVE \
-  ON *.* TO 'monitor'@'localhost' IDENTIFIED BY '${GALERA_MONITOR_PASSWORD}';
-
-GRANT SELECT, CREATE USER, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS, REPLICATION SLAVE \
-  ON *.* TO 'monitor'@'127.0.0.1' IDENTIFIED BY '${GALERA_MONITOR_PASSWORD}';
-
-GRANT USAGE \
-  ON *.* TO 'clustercheck'@'localhost' IDENTIFIED BY '$GALERA_CLUSTERCHECK_PASSWORD';
-
-DELETE FROM mysql.user WHERE User='';
-
-DROP DATABASE test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
-
-FLUSH PRIVILEGES;
-EOF
-) > /dev/null 2>&1
+    echo "";
 }
 
 function set_sysusers_password ()
@@ -241,4 +207,39 @@ function term_handler()
         wait "$CUR_PID"
     fi
     exit 0;
+}
+
+
+function setup_users ()
+{
+    set_sysusers_password;
+
+    logmsg "Setting up system users and securing defaults ...";
+
+    $((mysql -Ns) << EOF
+SET @@SESSION.SQL_LOG_BIN=0;
+
+GRANT ALL PRIVILEGES \
+  ON *.* TO 'root'@'%' IDENTIFIED BY '$MARIADB_ROOT_PASSWORD' WITH GRANT OPTION;
+
+GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT \
+  ON *.* TO 'xtrabackup'@'localhost' IDENTIFIED BY '$GALERA_REPLICATION_PASSWORD';
+
+GRANT SELECT, CREATE USER, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS, REPLICATION SLAVE \
+  ON *.* TO 'monitor'@'localhost' IDENTIFIED BY '${GALERA_MONITOR_PASSWORD}';
+
+GRANT SELECT, CREATE USER, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS, REPLICATION SLAVE \
+  ON *.* TO 'monitor'@'127.0.0.1' IDENTIFIED BY '${GALERA_MONITOR_PASSWORD}';
+
+GRANT USAGE \
+  ON *.* TO 'clustercheck'@'localhost' IDENTIFIED BY '$GALERA_CLUSTERCHECK_PASSWORD';
+
+DELETE FROM mysql.user WHERE User='';
+
+DROP DATABASE test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
+
+FLUSH PRIVILEGES;
+EOF
+) > /dev/null 2>&1
 }

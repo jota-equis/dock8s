@@ -1,28 +1,5 @@
 FROM debian:10-slim
 
-COPY rootfs /
-
-RUN set -eux; \
-  groupadd -g 3306 mysql; \
-  useradd -p --disabled-password \
-    -u 3306 \
-    -g mysql \
-    -s /bin/bash \
-    -d /srv/mysql \
-    mysql; \
-  \
-  chown -R 3306:3306 \
-    /srv/mysql \
-    > /dev/null 2>&1 \
-  ; \
-  chmod 0750 \
-    /srv/mysql \
-    /srv/mysql/{bin,bin/docker,etc,log,logbin,sql} \
-    /srv/mysql/{bin,bin/docker}/* \
-  ; \
-  find /srv/mysql/etc -type f -exec chmod 0640 {} + \
-;
-
 RUN set -eux; \
   export \
     DEBIAN_FRONTEND=noninteractive \
@@ -30,6 +7,15 @@ RUN set -eux; \
     SRV_VER="${SRV_VER:-5.7}" \
     SRV_PKG="percona-xtradb-cluster-server-${SRV_VER:-5.7}" \
     LANG="${LANG:-es_ES.UTF-8}" \
+  ; \
+  \
+  groupadd -g 3306 mysql; \
+  useradd -p --disabled-password -m \
+    -u 3306 \
+    -g mysql \
+    -s /bin/bash \
+    -d /srv/mysql \
+    mysql \
   ; \
   \
   apt-get update; \
@@ -103,9 +89,26 @@ RUN set -eux; \
     /var/lib/mysql/* \
 ;
 
+COPY rootfs /
+
+RUN set -eux; \
+  chown -R 3306:3306 \
+    /srv/mysql \
+    > /dev/null 2>&1 \
+  ; \
+  chmod 0750 \
+    /srv/mysql \
+    /srv/mysql/etc \
+    /srv/mysql/bin \
+    /srv/mysql/bin/* \
+    /srv/mysql/bin/docker/* \
+  ; \
+  find /srv/mysql/etc -type f -exec chmod 0640 {} + \
+;
+
 USER 3306
 
 EXPOSE 3306 4444 4567 4568
 
-ENTRYPOINT [ "/srv/scripts/entrypoint.sh"]
-#CMD [ "/srv/scripts/run.sh" ]
+ENTRYPOINT [ "/srv/mysql/bin/docker/entrypoint.sh"]
+#CMD [ "/srv/mysql/bin/docker/run.sh" ]
