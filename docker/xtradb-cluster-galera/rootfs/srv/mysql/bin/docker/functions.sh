@@ -184,21 +184,21 @@ function init_config ()
 {
     mk_newconf;
     add_peers;
-logmsg "NEW INIT CONFIG APPROACH"
+logmsg "NEW INIT CONFIG APPROACH 2"
 	local S=${CUR_STATUS:-0}
 	
-    if [[ is_master_node && ! is_data_populated && ! is_cluster_up ]]; then
+    if [[ $(is_master_node) = 1 && ! $(is_data_populated) = 1 && ! $(is_cluster_up) = 1 ]]; then
         S=0
 logmsg "STATUS 0 = ${S}";
 		bootstrap_master_node;
 
         [[ ${STARTFROMBACKUP} = "true" && -d ${GALERA_BACKUP} ]] && S=1
-    elif [[ is_cluster_up && ! is_data_populated ]]; then
+    elif [[ $(is_cluster_up) = 1 && ! $(is_data_populated) = 1 ]]; then
         S=2
 logmsg "STATUS 2 = ${S}"
 		bootstrap_child_node;
 
-    elif [[ is_data_populated ]]; then
+    elif [[ $(is_data_populated) = 1 ]]; then
         S=3
 logmsg "STATUS 3 = ${S}"
 		logmsg "Grant tables are present just attempt a start"
@@ -223,7 +223,7 @@ function init_node ()
 {
 logmsg "INIT MODE STATUS = ${1:-} - ${CUR_STATUS}"
 
-    if [[ ! is_cluster_up && is_master_node ]]; then
+    if [[ ! $(is_cluster_up) = 1 && $(is_master_node) = 1 ]]; then
         [[ -f ${GALERA_GRASTATE} ]] && sed -i "s/^safe_to_bootstrap.*$/safe_to_bootstrap: 1/g" ${GALERA_GRASTATE}
         BOOTARGS="--wsrep-new-cluster"
     fi
@@ -258,18 +258,18 @@ function get_rnd_password ()
 function is_master_node ()
 {
     [[ -z "$GALERA_NODE_ID" ]] && export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
-    [[ $GALERA_NODE_ID = 0 ]] && echo 1;
+    [[ $GALERA_NODE_ID = 0 ]] && echo 1 || echo 0;
 }
 
 function is_data_populated ()
 {
-    [[ -d "$MARIADB_DATA/mysql" ]] && echo 1;
+    [[ -d "$MARIADB_DATA/mysql" ]] && echo 1 || echo 0;
 }
 
 function is_cluster_up ()
 {
     [[ -z "$GALERA_CLUSTER_UP" ]] && export GALERA_CLUSTER_UP=0;
-    [[ $GALERA_CLUSTER_UP = 1 ]] && echo 1;
+    [[ $GALERA_CLUSTER_UP = 1 ]] && echo 1 || echo 0;
 }
 
 function term_handler ()
