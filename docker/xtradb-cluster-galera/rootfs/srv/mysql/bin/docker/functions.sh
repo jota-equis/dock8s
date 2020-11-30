@@ -146,7 +146,7 @@ function bak_restore_file ()
 
 function db_delete_data ()
 {
-	[[ "${1:-0}" -eq 1 ]] && rm -Rf "${MARIADB_DATA}/*";
+	[[ ${1:-0} = 1 ]] && rm -Rf ${MARIADB_DATA}/*;
 }
 
 function db_initialize ()
