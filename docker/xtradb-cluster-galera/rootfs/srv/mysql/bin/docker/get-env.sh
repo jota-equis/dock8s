@@ -52,8 +52,8 @@ export GALERA_BOOTSTRAP="${MARIADB_ROOT}/.bootstrap"
 export GALERA_BOOTSTRAP_FILE="${GALERA_BOOTSTRAP}/done"
 export GALERA_NODE_ADDR=$(hostname -i)
 
-export GALERA_NODENAME=$(hostname);
-export GALERA_NODEID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
+export GALERA_NODE_NAME=${GALERA_NODE_NAME:-${MY_POD_NAME:-$(hostname)}};
+export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
 export GALERA_HOSTPREFIX=$(echo $(hostname) | rev | cut -d- -f2- | rev);
 
 export GALERA_CLUSTER_UP=0

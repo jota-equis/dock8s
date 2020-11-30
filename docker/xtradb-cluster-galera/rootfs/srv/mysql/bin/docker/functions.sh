@@ -21,14 +21,6 @@ function logerror ()
     [[ $KEEP -eq 0 ]] && exit 1;
 }
 
-function write_user_conf ()
-{
-    logmsg "Setting root password in user cnf";
-
-    [[ -f "${MARIADB_USER_CNF}.default" ]] && envsubst < "${MARIADB_USER_CNF}.default" > ${MARIADB_USER_CNF};
-    chmod 0640 ${MARIADB_USER_CNF};
-}
-
 function mk_appdir ()
 {
     logmsg "Setting default directory tree";
@@ -58,6 +50,20 @@ function mk_newconf ()
     [[ -d "${GALERA_BACKUP}" ]] && set_file_conf "${MARIADB_CONFIG_EXTRA}/file.cnf";
 }
 
+function write_user_conf ()
+{
+    logmsg "Setting root password in user cnf";
+
+    set_file_conf "${MARIADB_USER_CNF}";
+    chmod 0640 ${MARIADB_USER_CNF};
+}
+
+function set_file_conf ()
+{
+    local F="${1:-}"
+    [[ -f "${F}.default" ]] && envsubst < "${F}.default" > "${F}";
+}
+
 function clean_prev ()
 {
     logmsg "Cleaning up stale config and locks";
@@ -84,7 +90,7 @@ function add_peers ()
     local N=$GALERA_CLUSTER_PEERS
 
     until [ $N -lt 0 ]; do
-        if [ $N -ne $GALERA_NODEID ]; then
+        if [ $N -ne $GALERA_NODE_ID ]; then
             logmsg "Trying ${GALERA_HOSTPREFIX}-${N}.${GALERA_CLUSTER_NAME}";
             if [ $(getent hosts ${GALERA_HOSTPREFIX}-${N}.${GALERA_CLUSTER_NAME} | wc -l) -eq 1 ]; then
                 if $(nc -w 2 -z ${GALERA_HOSTPREFIX}-${N}.${GALERA_CLUSTER_NAME} 3306 > /dev/null 2>&1) ; then
@@ -150,7 +156,7 @@ function get_rnd_password ()
 
 function is_master_node ()
 {
-    [[ $GALERA_NODEID -eq 0 ]];
+    [[ $GALERA_NODE_ID -eq 0 ]];
 }
 
 function is_data_populated ()
@@ -161,12 +167,6 @@ function is_data_populated ()
 function is_cluster_up ()
 {
     [[ $GALERA_CLUSTER_UP -eq 1 ]];
-}
-
-function set_file_conf ()
-{
-    local F="${1:-}"
-    [[ -f "${F}.default" ]] && envsubst < "${F}.default" > "${F}";
 }
 
 function term_handler()

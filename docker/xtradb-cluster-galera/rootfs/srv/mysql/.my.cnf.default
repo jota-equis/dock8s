@@ -2,4 +2,4 @@
 user     = root
 password = "${MYSQL_ROOT_PASSWORD}"
 socket   = ${MARIADB_SOCK}
-prompt   = "$(hostname): [\d]>"
+prompt   = "${GALERA_NODE_NAME}: [\d]>"
