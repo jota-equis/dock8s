@@ -111,4 +111,4 @@ USER 3306
 EXPOSE 3306 4444 4567 4568
 
 ENTRYPOINT [ "/srv/mysql/bin/docker/entrypoint.sh"]
-#CMD [ "/srv/mysql/bin/docker/run.sh" ]
+CMD [ "/srv/mysql/bin/docker/run.sh" ]
