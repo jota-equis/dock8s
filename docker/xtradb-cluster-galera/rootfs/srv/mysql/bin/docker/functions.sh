@@ -184,7 +184,7 @@ function init_config ()
 {
     mk_newconf;
     add_peers;
-    
+logmsg "NEW INIT CONFIG APPROACH"
 	local S=${CUR_STATUS:-0}
 	
     if [[ is_master_node && ! is_data_populated && ! is_cluster_up ]]; then
@@ -258,18 +258,18 @@ function get_rnd_password ()
 function is_master_node ()
 {
     [[ -z "$GALERA_NODE_ID" ]] && export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
-    [[ $GALERA_NODE_ID -eq 0 ]];
+    [[ $GALERA_NODE_ID = 0 ]] && echo 1;
 }
 
 function is_data_populated ()
 {
-    [[ -d "$MARIADB_DATA/mysql" ]];
+    [[ -d "$MARIADB_DATA/mysql" ]] && echo 1;
 }
 
 function is_cluster_up ()
 {
     [[ -z "$GALERA_CLUSTER_UP" ]] && export GALERA_CLUSTER_UP=0;
-    [[ $GALERA_CLUSTER_UP -eq 1 ]];
+    [[ $GALERA_CLUSTER_UP = 1 ]] && echo 1;
 }
 
 function term_handler ()
