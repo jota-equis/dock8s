@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export BOOTARGS="";
+export BOOTARGS=""
 export CUR_PID=0
 export CUR_STATUS=-1
 
