@@ -88,6 +88,7 @@ function add_peers ()
     logmsg "Looking for peers ...";
 
     local N=$GALERA_CLUSTER_PEERS
+    export GALERA_CLUSTER_UP=0
 
     until [ $N -lt 0 ]; do
         if [ $N -ne $GALERA_NODE_ID ]; then
@@ -116,12 +117,14 @@ function init_config ()
     
     if [ is_master_node ] && [ ! is_data_populated ] && [ ! is_cluster_up ]; then
         CUR_STATUS=0
-
+logmsg "STATUS 0 = ${CUR_STATUS}"
         [[ "${STARTFROMBACKUP}" = "true" && -d "${GALERA_BACKUP}" ]] && CUR_STATUS=1
     elif [ is_cluster_up ] && [ ! is_data_populated ]; then
         CUR_STATUS=2
+logmsg "STATUS 2 = ${CUR_STATUS}"
     elif [ is_data_populated ]; then
         CUR_STATUS=3
+logmsg "STATUS 3 = ${CUR_STATUS}"
     fi
 
     if [ $CUR_STATUS -eq -1 ]; then
@@ -131,13 +134,82 @@ function init_config ()
         logerror " · SSTUSER_PASSWORD=<password for SST user>" 1;
         logerror " · CLUSTER_NAME=<name of cluster>";
     fi
-    
+logmsg "STATUS INIT = ${CUR_STATUS}"
     init_node "$CUR_STATUS";
 }
 
 function init_node ()
 {
-    echo "";
+logmsg "INIT MODE STATUS = ${1:-} - ${CUR_STATUS}"
+    case "${1:-}" in
+        0)
+            logmsg "This is the first node in a stateful set and it has no grant tables and no other nodes are up - initialize"
+            mv $MARIADB_CONFIG_EXTRA/wsrep.cnf $MARIADB_CONFIG_EXTRA/wsrep.cnf.bak
+            rm -Rf $MARIADB_DATA/*
+
+            mysqld --initialize-insecure --datadir=$MARIADB_DATA/ --user=$MARIADB_USER
+            mysqld --defaults-file=$MARIADB_CNF --user=$MARIADB_USER --datadir=$MARIADB_DATA/ --skip-networking --log-error=$MARIADB_LOG/mysqld.log &
+
+            for i in {1..30}; do
+                if $(mysql -u root -S $MARIADB_SOCK -Nse "SELECT 1;" > /dev/null 2>&1) ; then
+                    break
+                fi
+                sleep 2
+            done
+
+            [[ $i -eq 30 ]] && logerror "Failed to initialize";
+
+            if $(/usr/bin/mysqladmin -S $MARIADB_SOCK -u root password "${MARIADB_ROOT_PASSWORD}" 2>/dev/null) ; then
+                write_user_conf
+            else
+                logerror "Failed to set root password";
+            fi
+
+            setup_users;
+
+            killall mysqld
+
+            until [ $(pgrep -c mysqld) -eq 0 ]; do sleep 1; done
+
+            logmsg "MySQL shutdown"
+
+            mv $MARIADB_CONFIG_EXTRA/wsrep.cnf.bak $MARIADB_CONFIG_EXTRA/wsrep.cnf
+        ;;
+
+        1)
+            logmsg "This is the first node in a stateful set, it has no grant tables, no other cluster nodes are up and is set to start from backup";
+            logerror "Failed :: Restore from backup not yet supported!";
+        ;;
+
+        2)
+            logmsg "This is not the first node in a stateful set and has no grant tables and at least one node is up - SST"
+            rm -rf $MARIADB_DATA/*
+
+            write_user_conf
+        ;;
+
+        3)
+            logmsg "Grant tables are present just attempt a start"
+            write_user_conf
+        ;;
+    esac;
+
+    if [ ! is_cluster_up ] && [ is_master_node ]; then
+        [[ -f ${GALERA_GRASTATE} ]] && sed -i "s/^safe_to_bootstrap.*$/safe_to_bootstrap: 1/g" ${GALERA_GRASTATE}
+        BOOTARGS="--wsrep-new-cluster"
+    fi
+
+    trap 'kill ${!}; term_handler' SIGKILL SIGTERM SIGHUP SIGINT EXIT
+    
+    run_service;
+}
+
+function run_service ()
+{
+    logmsg "Starting MySQL"
+    eval "mysqld --defaults-file=$MARIADB_CNF --datadir=$MARIADB_DATA --user=$MARIADB_USER $BOOTARGS 2>&1 &"
+
+    CUR_PID="$!"
 }
 
 function set_sysusers_password ()
@@ -156,6 +228,7 @@ function get_rnd_password ()
 
 function is_master_node ()
 {
+    [[ -z "$GALERA_NODE_ID" ]] && export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
     [[ $GALERA_NODE_ID -eq 0 ]];
 }
 
@@ -166,10 +239,11 @@ function is_data_populated ()
 
 function is_cluster_up ()
 {
+    [[ -z "$GALERA_CLUSTER_UP" ]] && export GALERA_CLUSTER_UP=0;
     [[ $GALERA_CLUSTER_UP -eq 1 ]];
 }
 
-function term_handler()
+function term_handler ()
 {
     if [ $CUR_PID -ne 0 ]; then
         logmsg "Stop trapped, draining users"

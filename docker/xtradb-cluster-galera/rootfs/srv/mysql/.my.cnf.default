@@ -3,4 +3,4 @@ user     = root
 password = "${MYSQL_ROOT_PASSWORD}"
 socket   = ${MARIADB_SOCK}
 #prompt   = "${GALERA_NODE_NAME}: [\d]>"
-prompt   = \u@\h:[\d]>\_
+#prompt   = \u@\h:[\d]>\_
