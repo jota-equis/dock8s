@@ -3,7 +3,7 @@ FROM debian:10-slim
 RUN set -eux; \
   export \
     DEBIAN_FRONTEND=noninteractive \
-    MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-}" \
+    MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD:-}" \
     SRV_VER="${SRV_VER:-5.7}" \
     SRV_PKG="percona-xtradb-cluster-server-${SRV_VER:-5.7}" \
     LANG="${LANG:-es_ES.UTF-8}" \
@@ -99,8 +99,8 @@ RUN set -eux; \
     > /dev/null 2>&1 \
   ; \
   \
-  find /srv/mysql -type d -exec chmod 0750 {} + > /dev/null 2>&1 \
-  find /srv/mysql/etc -type f -exec chmod 0640 {} + \
+  find /srv/mysql -type d -exec chmod 0750 {} + > /dev/null 2>&1; \
+  find /srv/mysql/etc -type f -exec chmod 0640 {} +; \
   find /srv/mysql/bin -type f -exec chmod 0750 {} + \
 ;
 
