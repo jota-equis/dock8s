@@ -3,18 +3,20 @@ FROM debian:10-slim
 RUN set -eux; \
   export \
     DEBIAN_FRONTEND=noninteractive \
-    MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD:-}" \
+    MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-}" \
     SRV_VER="${SRV_VER:-5.7}" \
     SRV_PKG="percona-xtradb-cluster-server-${SRV_VER:-5.7}" \
     LANG="${LANG:-es_ES.UTF-8}" \
+    MARIADB_HOME="${MARIADB_HOME:-/srv/mysql}" \
   ; \
   \
+  mkdir -pm0750 $MARIADB_HOME; \
   groupadd -g 3306 mysql; \
-  useradd -p --disabled-password -m \
+  useradd -p --disabled-password \
     -u 3306 \
     -g mysql \
     -s /bin/bash \
-    -d /srv/mysql \
+    -d $MARIADB_HOME \
     mysql \
   ; \
   \
@@ -65,9 +67,8 @@ RUN set -eux; \
   ; \
   apt-get update; \
   \
-  echo "$SRV_PKG $SRV_PKG/root-pass password $MARIADB_ROOT_PASSWORD" | debconf-set-selections; \
-  echo "$SRV_PKG $SRV_PKG/re-root-pass password $MARIADB_ROOT_PASSWORD" | debconf-set-selections; \
-  echo "$SRV_PKG $SRV_PKG/remove-data-dir true" | debconf-set-selections; \
+  echo "$SRV_PKG $SRV_PKG/root-pass password $MYSQL_ROOT_PASSWORD" | debconf-set-selections; \
+  echo "$SRV_PKG $SRV_PKG/re-root-pass password $MYSQL_ROOT_PASSWORD" | debconf-set-selections; \
   \
   apt-mark auto '.*' > /dev/null; \
   [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
@@ -87,8 +88,7 @@ RUN set -eux; \
     /var/cache/apt/archives/* \
     /var/tmp/* \
     /tmp/* \
-    /var/lib/mysql \
-    /var/log/mysql* \
+    /var/lib/mysql/* \
 ;
 
 COPY rootfs /
@@ -98,16 +98,19 @@ RUN set -eux; \
     /srv/mysql \
     > /dev/null 2>&1 \
   ; \
-  \
-  find /srv/mysql -type d -exec chmod 0750 {} + > /dev/null 2>&1; \
-  find /srv/mysql/etc -type f -exec chmod 0640 {} +; \
-  find /srv/mysql/bin -type f -exec chmod 0750 {} + \
+  chmod 0750 \
+    /srv/mysql \
+    /srv/mysql/etc \
+    /srv/mysql/bin \
+    /srv/mysql/bin/* \
+    /srv/mysql/bin/docker/* \
+  ; \
+  find /srv/mysql/etc -type f -exec chmod 0640 {} + \
 ;
 
-EXPOSE 3306 4444 4567 4568
-
 USER 3306
-WORKDIR /srv/mysql
+
+EXPOSE 3306 4444 4567 4568
 
 ENTRYPOINT [ "/srv/mysql/bin/docker/entrypoint.sh"]
 CMD [ "/srv/mysql/bin/docker/run.sh" ]

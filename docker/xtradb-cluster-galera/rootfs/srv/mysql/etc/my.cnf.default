@@ -11,8 +11,8 @@ skip_name_resolve
 explicit_defaults_for_timestamp        = ON
 
 datadir                                = $MARIADB_DATA
-socket                                 = $MARIADB_PID
-pid-file                               = $MARIADB_SOCK
+#socket                                 = $MARIADB_PID
+#pid-file                               = $MARIADB_SOCK
 
 long_query_time                        = 0.5
 

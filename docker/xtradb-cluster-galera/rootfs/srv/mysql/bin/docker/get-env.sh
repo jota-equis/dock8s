@@ -29,8 +29,8 @@ export MARIADB_CNF="${MARIADB_CONFIG}/my.cnf"
 export MARIADB_SQL="${MARIADB_ROOT}/sql"
 export MARIADB_TMP="${MARIADB_ROOT}/tmp"
 export MARIADB_RUN="/run/mysqld"
-export MARIADB_PID="${MARIADB_RUN}/mysqld.pid"
-export MARIADB_SOCK="${MARIADB_RUN}/mysqld.sock"
+#export MARIADB_PID="${MARIADB_RUN}/mysqld.pid"
+#export MARIADB_SOCK="${MARIADB_RUN}/mysqld.sock"
 
 export MARIADB_USER_CNF="${MARIADB_ROOT}/.my.cnf"
 export MARIADB_BOOTARGS_FILE="${MARIADB_TMP}/bootargs"
@@ -50,7 +50,7 @@ export GALERA_SERVERID="$(ip a | grep "inet.*eth0" | awk '{print $2}' | cut -d/ 
 
 export GALERA_HOSTPREFIX=$(echo $(hostname) | rev | cut -d- -f2- | rev);
 
-export GALERA_CPU_THREADS="${GALERA_CPU_THREADS:-$((CPU_THREADS*4))}"
+export GALERA_CPU_THREADS="${GALERA_CPU_THREADS:-$((CPU_THREADS*2))}"
 export GALERA_BACKUP_THREADS="${GALERA_BACKUP_THREADS:-$((CPU_LIMIT-1))}"
 [[ $CPU_LIMIT -lt 1 ]] && export GALERA_BACKUP_THREADS=1
 
@@ -65,7 +65,9 @@ export GALERA_CLUSTER_UP=0
 export GALERA_CLUSTER_NAME="${GALERA_CLUSTER_NAME:-$(hostname -f | cut -s -d"." -f2)}"
 export GALERA_CLUSTER_SIZE="${GALERA_CLUSTER_SIZE:-3}"
 export GALERA_CLUSTER_PEERS="${GALERA_CLUSTER_PEERS:-$((GALERA_CLUSTER_SIZE-1))}"
-export GALERA_CLUSTER_ADDR="gcomm://${GALERA_CLUSTER_ADDR:-$(hostname -d)}"
+export GALERA_CLUSTER_ADDR="${GALERA_CLUSTER_ADDR:-${GALERA_CLUSTER_NAME:-$(hostname -d)}}"
+export GALERA_CLUSTER_NODES=()
+export GALERA_CLUSTER_NODE_LIST=""
 
 export GALERA_BACKUP="${MARIADB_ROOT}/backup"
 export GALERA_GRASTATE="${MARIADB_DATA}/grastate.dat"

@@ -1,7 +1,7 @@
 [mysqld]
 pxc_strict_mode                       = ENFORCING
 wsrep_provider                        = /usr/lib/galera3/libgalera_smm.so
-wsrep_cluster_address                 = ${GALERA_CLUSTER_ADDR}
+wsrep_cluster_address                 = gcomm://
 wsrep_node_address                    = ${GALERA_NODE_ADDR}
 wsrep_sst_receive_address             = ${GALERA_NODE_ADDR}
 wsrep_log_conflicts                   = ON

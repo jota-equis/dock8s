@@ -16,6 +16,8 @@ function mk_config ()
 
     logmsg "\t... Setting default config files.";
 
+    set_sysusers_password;
+
     set_file_conf "${MARIADB_CONFIG}/my.cnf";
     set_file_conf "${MARIADB_CONFIG_EXTRA}/binlog.cnf";
     set_file_conf "${MARIADB_CONFIG_EXTRA}/wsrep.cnf";
@@ -133,8 +135,6 @@ function get_root_grant_query ()
 
 function setup_users ()
 {
-    set_sysusers_password;
-
     logmsg "\t... Setting up system users and securing defaults.";
 
     $(mysql -Ns << EOF
@@ -237,7 +237,7 @@ function mk_dirs ()
 function set_file_conf ()
 {
     local F="${1:-}"
-    [[ -f "${F}.default" ]] && { envsubst < "${F}.default" > "${F}"; rm -f "${F}.default"; };
+    [[ -f "${F}.default" ]] && { envsubst < "${F}.default" > "${F}"; };
 }
 
 function clean_locks ()
