@@ -3,9 +3,10 @@
 . /srv/mysql/bin/docker/get-env.sh
 . /srv/mysql/bin/docker/functions.sh
 
-[[ -f ${MARIADB_TMP}/bootargs ]] && { . ${MARIADB_TMP}/bootargs; rm -f ${MARIADB_TMP}/bootargs; };
+logmsg "Starting XtraDB MariaDB server"
 
-logmsg "Starting MySQL"
-mysqld --defaults-file=${MARIADB_CNF} --datadir=${MARIADB_DATA} --user=${MARIADB_USER} ${BOOTARGS} 2>&1 &
+get_boot_envs;
+# trap 'kill ${!}; term_handler' SIGKILL SIGTERM SIGHUP SIGINT EXIT
+exec mysqld --defaults-file=${MARIADB_CNF} --datadir=${MARIADB_DATA} --user=${MARIADB_USER} ${BOOTARGS};
 
-wait ${!}
+#wait ${!}

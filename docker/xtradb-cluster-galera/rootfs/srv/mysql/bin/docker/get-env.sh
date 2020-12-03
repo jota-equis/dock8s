@@ -29,46 +29,46 @@ export MARIADB_CNF="${MARIADB_CONFIG}/my.cnf"
 export MARIADB_SQL="${MARIADB_ROOT}/sql"
 export MARIADB_TMP="${MARIADB_ROOT}/tmp"
 export MARIADB_RUN="${MARIADB_ROOT}/run"
-export MARIADB_PID="${MARIADB_RUN}/mysqld.pid"
-export MARIADB_SOCK="${MARIADB_RUN}/mysqld.sock"
+#export MARIADB_PID="${MARIADB_RUN}/mysqld.pid"
+#export MARIADB_SOCK="${MARIADB_RUN}/mysqld.sock"
 
 export MARIADB_USER_CNF="${MARIADB_ROOT}/.my.cnf"
+export MARIADB_BOOTARGS_FILE="${MARIADB_TMP}/bootargs"
+
+export MARIADB_PID=/var/run/mysqld/mysqld.pid
+export MARIADB_SOCK=/var/run/mysqld/mysqld.sock
 
 # RESOURCES
 export PATH="${MARIADB_BIN}:${PATH}"
 export CPU_THREADS=$(grep -c ^processor /proc/cpuinfo)
-export CPU_LIMIT=$((CPU_THREADS/2))
-export RAM_MAX=512
-export RAM_LIMIT=$((RAM_MAX/4))
+export CPU_LIMIT="${CPU_LIMIT:-$((CPU_THREADS/2))}"
+export RAM_MAX="${RAM_MAX:-512}"
+export RAM_LIMIT="${RAM_LIMIT:-$((RAM_MAX/4))}"
 
 # GALERA
 export GALERA_SERVERID="$(ip a | grep "inet.*eth0" | awk '{print $2}' | cut -d/ -f1 | awk -F. '{printf "%d%s", (($1*256+$2)*256+$3)*256+$4, RT}')"
 
-export GALERA_GRASTATE="${MARIADB_DATA}/grastate.dat"
+export GALERA_HOSTPREFIX=$(echo $(hostname) | rev | cut -d- -f2- | rev);
 
-export GALERA_BACKUP="${MARIADB_ROOT}/backup"
-[[ $CPU_LIMIT -lt 1 ]] && GALERA_BACKUP_THREADS=1 || GALERA_BACKUP_THREADS=$CPU_LIMIT
+export GALERA_CPU_THREADS="${GALERA_CPU_THREADS:-$((CPU_THREADS*4))}"
+export GALERA_BACKUP_THREADS="${GALERA_BACKUP_THREADS:-$((CPU_LIMIT-1))}"
+[[ $CPU_LIMIT -lt 1 ]] && export GALERA_BACKUP_THREADS=1
 
 export GALERA_BOOTSTRAP="${MARIADB_ROOT}/.bootstrap"
 export GALERA_BOOTSTRAP_FILE="${GALERA_BOOTSTRAP}/done"
-export GALERA_NODE_ADDR=$(hostname -i)
 
+export GALERA_NODE_ADDR=$(hostname -i)
 export GALERA_NODE_NAME=${GALERA_NODE_NAME:-${MY_POD_NAME:-$(hostname)}};
 export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
-export GALERA_HOSTPREFIX=$(echo $(hostname) | rev | cut -d- -f2- | rev);
 
 export GALERA_CLUSTER_UP=0
+export GALERA_CLUSTER_NAME="${GALERA_CLUSTER_NAME:-$(hostname -f | cut -s -d"." -f2)}"
+export GALERA_CLUSTER_SIZE="${GALERA_CLUSTER_SIZE:-3}"
+export GALERA_CLUSTER_PEERS="${GALERA_CLUSTER_PEERS:-$((GALERA_CLUSTER_SIZE-1))}"
+export GALERA_CLUSTER_ADDR="gcomm://${GALERA_CLUSTER_ADDR:-$(hostname -d)}"
 
-[[ -z "$GALERA_CLUSTER_NAME" ]] && GALERA_CLUSTER_NAME=$(hostname -f | cut -s -d"." -f2)
-export GALERA_CLUSTER_NAME
-
-[[ -z "$GALERA_CLUSTER_SIZE" ]] && GALERA_CLUSTER_PEERS=2 || GALERA_CLUSTER_PEERS=$((GALERA_CLUSTER_SIZE-1))
-export GALERA_CLUSTER_PEERS
-
-[[ -z "$GALERA_CPU_THREADS" ]] && GALERA_CPU_THREADS=$((CPU_THREADS*4))
-export GALERA_CPU_THREADS
-
-export GALERA_CLUSTER_ADDR="gcomm://"
+export GALERA_BACKUP="${MARIADB_ROOT}/backup"
+export GALERA_GRASTATE="${MARIADB_DATA}/grastate.dat"
 export GALERA_SST_METHOD="xtrabackup-v2"
 
 export GALERA_MARIABACKUP_USER="${GALERA_MARIABACKUP_USER:-galera-backup}"
@@ -77,7 +77,7 @@ export GALERA_MARIABACKUP_PASSWORD="${GALERA_MARIABACKUP_PASSWORD:-}"
 export GALERA_REPLICATION_USER="${GALERA_REPLICATION_USER:-xtrabackup}"
 export GALERA_REPLICATION_PASSWORD="${GALERA_REPLICATION_PASSWORD:-}"
 
-export GALERA_MONITOR_USER="${GALERA_REPLICATION_USER:-monitor}"
+export GALERA_MONITOR_USER="${GALERA_MONITOR_USER:-monitor}"
 export GALERA_MONITOR_PASSWORD="${GALERA_MONITOR_PASSWORD:-}"
 
 export GALERA_CLUSTERCHECK_USER="${GALERA_CLUSTERCHECK_USER:-clustercheck}"

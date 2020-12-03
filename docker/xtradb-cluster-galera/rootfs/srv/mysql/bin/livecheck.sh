@@ -1,7 +1,4 @@
-#!/bin/bash
-
-# Liveness check just looks for a running mysqld process, this stops the container being restarted during large SST
-# added the abiliy to overide by touching a lock file, during recovery of data ensure pod does not restart
+#!/usr/bin/env bash
 
 if [ $(pgrep mysqld) ] || [ -f "/tmp/live.lock" ]; then
 

@@ -65,8 +65,9 @@ RUN set -eux; \
   ; \
   apt-get update; \
   \
-  echo "$SRV_PKG $SRV_PKG/root-pass password $MYSQL_ROOT_PASSWORD" | debconf-set-selections; \
-  echo "$SRV_PKG $SRV_PKG/re-root-pass password $MYSQL_ROOT_PASSWORD" | debconf-set-selections; \
+  echo "$SRV_PKG $SRV_PKG/root-pass password $MARIADB_ROOT_PASSWORD" | debconf-set-selections; \
+  echo "$SRV_PKG $SRV_PKG/re-root-pass password $MARIADB_ROOT_PASSWORD" | debconf-set-selections; \
+  echo "$SRV_PKG $SRV_PKG/remove-data-dir true" | debconf-set-selections; \
   \
   apt-mark auto '.*' > /dev/null; \
   [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
@@ -86,7 +87,8 @@ RUN set -eux; \
     /var/cache/apt/archives/* \
     /var/tmp/* \
     /tmp/* \
-    /var/lib/mysql/* \
+    /var/lib/mysql \
+    /var/log/mysql* \
 ;
 
 COPY rootfs /
@@ -96,19 +98,16 @@ RUN set -eux; \
     /srv/mysql \
     > /dev/null 2>&1 \
   ; \
-  chmod 0750 \
-    /srv/mysql \
-    /srv/mysql/etc \
-    /srv/mysql/bin \
-    /srv/mysql/bin/* \
-    /srv/mysql/bin/docker/* \
-  ; \
+  \
+  find /srv/mysql -type d -exec chmod 0750 {} + > /dev/null 2>&1 \
   find /srv/mysql/etc -type f -exec chmod 0640 {} + \
+  find /srv/mysql/bin -type f -exec chmod 0750 {} + \
 ;
 
-USER 3306
-
 EXPOSE 3306 4444 4567 4568
+
+USER 3306
+WORKDIR /srv/mysql
 
 ENTRYPOINT [ "/srv/mysql/bin/docker/entrypoint.sh"]
 CMD [ "/srv/mysql/bin/docker/run.sh" ]

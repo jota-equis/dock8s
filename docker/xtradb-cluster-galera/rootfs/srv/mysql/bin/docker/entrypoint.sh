@@ -4,3 +4,6 @@
 . /srv/mysql/bin/docker/functions.sh
 
 init_config;
+
+echo ""
+exec "$@"
