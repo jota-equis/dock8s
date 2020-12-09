@@ -1,5 +1,0 @@
-[sst]
-compressor                           = 'pigz -p ${GALERA_BACKUP_THREADS}'
-decompressor                         = 'pigz -dc'
-rlimit                               = 5m
-inno-apply-opts                      = "--use-memory=$RAM_LIMIT"
