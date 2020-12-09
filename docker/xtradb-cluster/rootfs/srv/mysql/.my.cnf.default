@@ -1,0 +1,7 @@
+[client]
+user     = root
+host     = localhost
+password = ${MYSQL_ROOT_PASSWORD}
+socket   = ${MYSQL_SOCK}
+#prompt   = "${GALERA_NODE_NAME}: [\d]>"
+#prompt   = \u@\h:[\d]>\_

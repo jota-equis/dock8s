@@ -1,0 +1,13 @@
+[mysqld]
+log-bin                                = ${MYSQL_LOGBIN}/${GALERA_NODE_NAME}-bin.log
+log-bin-index                          = ${MYSQL_LOGBIN}/${GALERA_NODE_NAME}-bin.log.index
+relay-log                              = ${MYSQL_LOGBIN}/${GALERA_NODE_NAME}-relay.bin
+relay-log-index                        = ${MYSQL_LOGBIN}/${GALERA_NODE_NAME}-relay.bin.index
+log-slave-updates                      = ON
+log-slow-slave-statements              = ON
+binlog_expire_logs_seconds             = 604800
+max-binlog-size                        = 256M
+binlog_format                          = ROW
+gtid-mode                              = ON
+enforce-gtid-consistency               = ON
+server_id                              = ${GALERA_SERVERID}

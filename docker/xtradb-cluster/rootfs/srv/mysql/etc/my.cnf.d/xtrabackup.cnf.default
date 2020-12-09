@@ -1,0 +1,2 @@
+[xtrabackup]
+inno-backup-opts                     = '--no-backup-locks'

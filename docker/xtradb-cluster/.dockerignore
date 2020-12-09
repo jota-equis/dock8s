@@ -1,0 +1,13 @@
+.git
+.gitignore
+LICENSE
+VERSION
+README.md
+Changelog.md
+Makefile
+docker-compose.yml
+mk-docker-image.sh
+docs
+local
+*/tmp*
+*/*/tmp*
