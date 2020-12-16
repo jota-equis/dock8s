@@ -2,25 +2,42 @@
 
 function setup_node ()
 {
-    get_peers_up;
-    mk_db_install;
-    
-    MYSQLD_FLAGS="$(get_run_flags)";
+    is_service_up && return || get_peers_up;
 
-    if [[ ! $(is_cluster_up) = 1 && $(is_master_node) = 1 ]]; then
-        if [[ -f ${GALERA_GRASTATE} ]]; then
-            sed -i "s/^safe_to_bootstrap.*$/safe_to_bootstrap: 1/g" ${GALERA_GRASTATE};
+    DAEMON_FLAGS="$(get_run_flags)";
+    INSTALL_DB=0
+
+    if ! is_cluster_up; then
+        logmsg "** No running cluster found.";
+        
+        if ! is_data_populated; then
+            logmsg "** No previous data found.";
+            INSTALL_DB=1;
+            DAEMON_FLAGS_EXTRA="--wsrep-new-cluster";
         else
-            MYSQLD_FLAGS="${MYSQLD_FLAGS} --wsrep-new-cluster";
+            logmsg "** Previous data found!";
+            sed -i "s/^safe_to_bootstrap.*$/safe_to_bootstrap: 1/g" ${GALERA_GRASTATE};
         fi
     else
-        set_cluster_node_list;
+        logmsg "** There is a running cluster!";
+        INSTALL_DB=1;
     fi
+    
+    [[ -f $MYSQL_CNF ]] && logmsg "Keeping previous config files ..." || mk_config;
 
-    set_flags_file;
-    fix_ownership;
+    bak_save_file "${MYSQL_CONFIG_EXTRA}/wsrep.cnf" "mv";
+    
+    if [[ $INSTALL_DB = 1 ]]; then
+        db_delete_data 1;
+        db_initialize;
+    else
+        db_dry_run;
+    fi
+    
+    bak_restore_file "${MYSQL_CONFIG_EXTRA}/wsrep.cnf";
 
     logmsg "** Cluster node ${GALERA_HOSTPREFIX}-${GALERA_NODE_ID} bootstraped! **\n";
+    unset_vars;
 }
 
 function get_peers_up()
@@ -28,12 +45,11 @@ function get_peers_up()
     logmsg "Looking for peers.";
 
     local PEER_STATUS="";
-    local PEER_NUMBER=${GALERA_CLUSTER_SIZE:-3};
     local PEER_NAME="";
     local PEER_DNS="";
     local PEER_RUNNING=0;
 
-    for I in $(seq $PEER_NUMBER -1 0); do
+    for I in $(seq $((${GALERA_CLUSTER_SIZE:-3} - 1)) -1 0); do
         [[ $I = $GALERA_NODE_ID ]] && continue;
 
         PEER_NAME="${GALERA_HOSTPREFIX}-${I}";
@@ -44,13 +60,12 @@ function get_peers_up()
         logmsg "\t... Trying ${PEER_DNS}";
         PEER_STATUS="UNKNOWN";
 
-        if [[ $(getent hosts ${PEER_DNS} | wc -l) = 1 ]]; then
+        if is_host ${PEER_DNS}; then
             PEER_STATUS="DOWN";
 
-            if [[ $(nc -w 2 -z ${PEER_DNS} ${MYSQL_PORT} > /dev/null 2>&1) ]]; then
+            if is_listening ${PEER_DNS} ${MYSQL_BIND_PORT}; then
                 PEER_STATUS="UP";
                 PEER_RUNNING=$((PEER_RUNNING+1));
-                GALERA_CLUSTER_UP=1;
             fi
         fi
 
@@ -58,8 +73,6 @@ function get_peers_up()
     done
 
     GALERA_CLUSTER_PEERS_UP="${PEER_RUNNING}";
-
-    [[ -f $MYSQL_HOME/.dock8s_has_config_files ]] && logmsg "Keeping previous config files ..." || mk_config;
 }
 
 function mk_config ()
@@ -67,14 +80,13 @@ function mk_config ()
     logmsg "Make config";
 
     logmsg "\t... Setting default directory tree.";
-    mk_dirs $MYSQL_CONFIG $MYSQL_CONFIG_EXTRA $MYSQL_DATA $MYSQL_BIN $MYSQL_LOG \
-    $MYSQL_LOGBIN $MYSQL_SQL $MYSQL_TMP $MYSQL_SECURE_DIR $GALERA_BOOTSTRAP \
-    $MYSQL_HOME/mysql-keyring ${MYSQL_CONFIG}/mysql.conf.d ${MYSQL_CONFIG}/conf.d;
+    mk_dirs $MYSQL_FILES $MYSQL_DATA $MYSQL_SECURE_DIR $MYSQL_CERT_DIR \
+    $MYSQL_LOGBIN $MYSQL_BIN $MYSQL_LOG $MYSQL_CONFIG $MYSQL_TMP \
+    $MYSQL_CONFIG_EXTRA;
 
     ln -sf $MYSQL_DATA /var/lib/mysql;
-    ln -sf $MYSQL_CONFIG /etc/mysql;
-    ln -sf $MYSQL_SECURE_DIR /var/lib/;
-    ln -sf $MYSQL_HOME/mysql-keyring /var/lib/;
+    ln -sf $MYSQL_SECURE_DIR /var/lib/mysql-files;
+    ln -sf $MYSQL_CERT_DIR /var/lib/mysql-keyring;
 
     logmsg "\t... Cleaning up stale config and locks.";
     clean_locks;
@@ -83,51 +95,19 @@ function mk_config ()
     logmsg "\t... Setting default config files.\n";
     set_file_conf "${MYSQL_CNF}";
     set_file_conf "${MYSQL_CONFIG_EXTRA}/binlog.cnf";
-    set_file_conf "${MYSQL_CONFIG_EXTRA}/file.cnf";
     set_file_conf "${MYSQL_CONFIG_EXTRA}/sst.cnf";
     set_file_conf "${MYSQL_CONFIG_EXTRA}/wsrep.cnf";
     set_file_conf "${MYSQL_CONFIG_EXTRA}/xtrabackup.cnf";
-
-    mk_checkpoint $MYSQL_HOME/.dock8s_has_config_files;
-}
-
-function mk_db_install ()
-{
-    local INSTALL_DB=0;
-    local DELETE_DB=0;
-
-    if [[ $(is_data_populated) = 1 ]]; then
-        [[ ! -f $MYSQL_DATA/.dock8s_has_db_files ]] && DELETE_DB=1;
-        # Other cases ...
-        # ${GALERA_CLUSTER_PEERS_UP} > 0
-    else
-        rm_checkpoint $MYSQL_HOME/.dock8s_has_data_files;
-        INSTALL_DB=1;
-    fi
-
-    db_delete_data $DELETE_DB;
-    [[ $INSTALL_DB = 1 || $DELETE_DB = 1 ]] && db_initialize;
 }
 
 function db_initialize ()
 {
-    bak_save_file "${MYSQL_CONFIG_EXTRA}/wsrep.cnf" 1;
-
-    fix_ownership;
-
 	logmsg "\t... Initializing database.";	
 	gosu $MYSQL_USER $MYSQLD $(get_run_flags "--initialize-insecure");
 	
 	mk_checkpoint $MYSQL_DATA/.dock8s_has_db_files;
 	
 	db_dry_run;
-
-	mk_checkpoint $MYSQL_HOME/.dock8s_has_data_files;
-
-	logmsg "\t... Database initialized.";	
-	db_service_stop;
-
-	bak_restore_file "${MYSQL_CONFIG_EXTRA}/wsrep.cnf";
 }
 
 function db_dry_run ()
@@ -135,7 +115,6 @@ function db_dry_run ()
     logmsg "\t... Start database service - Dry-run.";
 
     if [[ $(pgrep -c mysqld) = 0 ]]; then
-        ##setsid -f gosu $MYSQL_USER $MYSQLD $(get_run_flags "--log-error=${MYSQL_LOG}/error.log --skip-networking");
         gosu $MYSQL_USER $MYSQLD $(get_run_flags "--log-error=${MYSQL_LOG}/error.log --skip-networking") &
     else
         logmsg "\t\t... Database service already started - Dry-run.";
@@ -175,15 +154,17 @@ function db_connection_test ()
         return 0;
 	fi
 
-	logmsg "\t... Connection to database successful - Not using password.";
-	
     if [[ -f ${MYSQL_USER_CNF} ]]; then
         logmsg "\t... Connection to database successful - With user config.";
     else
+        logmsg "\t... Connection to database successful - Not using password.";
         set_sysusers_password;
         set_root_grants;
         set_system_grants;
     fi
+    
+    logmsg "\t... Database initialized.";
+    db_service_stop;
 }
 
 function db_service_stop ()
@@ -215,7 +196,7 @@ function get_run_flags ()
 {
     local flags="";
 
-    [[ -z $MYSQLD_FLAGS ]] && flags="$(get_default_flags)";
+    [[ -z $DAEMON_FLAGS ]] && flags="$(get_default_flags)";
     
     for f in "${@}"; do
         flags="${flags} ${f}";
@@ -226,7 +207,7 @@ function get_run_flags ()
 
 function set_flags_file ()
 {
-    [[ ! -z "${MYSQLD_FLAGS}" ]] && echo "${MYSQLD_FLAGS}" > ${MYSQL_HOME}/.run_flags;
+    [[ ! -z "${DAEMON_FLAGS}" ]] && echo "${DAEMON_FLAGS}" > $DAEMON_FLAGS_FILE;
 }
 
 function get_default_flags ()
@@ -295,12 +276,17 @@ EOF
 
 function set_cluster_node_list ()
 {
-    if [[ ! -z ${GALERA_CLUSTER_NODES} ]]; then
-        printf -v GALERA_CLUSTER_NODE_LIST '%s,' "${GALERA_CLUSTER_NODES[@]}";
-
-        [[ ! -z ${GALERA_CLUSTER_NODE_LIST} ]] && \
-            sed -i "s|^wsrep_cluster_address.*$|wsrep_cluster_address = gcomm://$(echo "${GALERA_CLUSTER_NODE_LIST%,}")|g" \
+    if [[ ! -z ${GALERA_CLUSTER_ADDR} ]]; then
+        sed -i "s|^wsrep_cluster_address.*$|wsrep_cluster_address = gcomm://${GALERA_CLUSTER_ADDR}|g" \
             ${MYSQL_CONFIG_EXTRA}/wsrep.cnf;
+    else
+        if [[ ! -z ${GALERA_CLUSTER_NODES} ]]; then
+            printf -v GALERA_CLUSTER_NODE_LIST '%s,' "${GALERA_CLUSTER_NODES[@]}";
+
+            [[ ! -z ${GALERA_CLUSTER_NODE_LIST} ]] && \
+                sed -i "s|^wsrep_cluster_address.*$|wsrep_cluster_address = gcomm://$(echo "${GALERA_CLUSTER_NODE_LIST%,}")|g" \
+                ${MYSQL_CONFIG_EXTRA}/wsrep.cnf;
+        fi
     fi
 }
 
@@ -359,8 +345,7 @@ function set_file_conf ()
 
 function del_file ()
 {
-    local F="${1:-}"
-    [[ -f "${F}" ]] && rm -f "${F}" > /dev/null 2>&1;
+    [[ ! -z "${1:-}" ]] && [[ -f "${1}" ]] && rm -f "${1}" > /dev/null 2>&1;
 }
 
 function clean_locks ()
@@ -389,14 +374,6 @@ function bak_restore_file ()
 function db_delete_data ()
 {
 	[[ ${1:-0} = 1 ]] && rm -Rf ${MYSQL_DATA}/*;
-	rm_checkpoint $MYSQL_HOME/.dock8s_has_data_files;
-}
-
-function set_boot_envs ()
-{
-    for E in "${@}"; do
-        [[ ! -z "${E}" ]] && BOOTFLAGS+=("${E}");
-    done
 }
 
 function get_rnd_password ()
@@ -413,72 +390,49 @@ function set_sysusers_password ()
     [[ -z $GALERA_CLUSTERCHECK_PASSWORD ]] && export GALERA_CLUSTERCHECK_PASSWORD="$(get_rnd_password)";
 }
 
-function is_master_node ()
+function unset_vars ()
 {
-    [[ -z "$GALERA_NODE_ID" ]] && export GALERA_NODE_ID=$(echo $(hostname) | rev | cut -d- -f1 | rev);
-    [[ $GALERA_NODE_ID = 0 ]] && echo 1 || echo 0;
+    unset MY_POD_NAME MYSQL_ROOT_PASSWORD _;
 }
 
 function is_data_populated ()
 {
-    [[ -d "$MYSQL_DATA/mysql" ]] && echo 1 || echo 0;
+    [[ -d $MYSQL_DATA && -d "$MYSQL_DATA/mysql" && -f ${GALERA_GRASTATE} && -f $MYSQL_DATA/.dock8s_has_db_files ]] && return;
+    false;
+}
+
+function is_configured ()
+{
+    [[ -f $MYSQL_CNF ]] && return;
+    false;
+}
+
+function is_host ()
+{
+    [[ ! -z "${1:-}" ]] && [[ $(getent hosts $1 | wc -l) > 0 ]] && return;
+    false;
 }
 
 function is_cluster_up ()
 {
-    [[ -z "$GALERA_CLUSTER_UP" ]] && export GALERA_CLUSTER_UP=0;
-    [[ $GALERA_CLUSTER_UP = 1 ]] && echo 1 || echo 0;
+    is_host ${GALERA_CLUSTER_NAME} && { export GALERA_CLUSTER_UP=1; return; }
+    false;
 }
 
-
-###########
-
-function __term_handler ()
+function is_listening ()
 {
-    local L="${!}";
-    local P="${1:-${CUR_PID:-$L}}";
-    
-    CUR_PID="${P:-0}";
-
-    if [[ ! $CUR_PID = 0 ]]; then
-        logmsg "Stop trapped, draining users"
-        touch /tmp/drain.lock
-
-        if [ $(mysql --defaults-file=${MYSQL_USER_CNF} -Nse "SELECT 1;" 2>/dev/null) ]; then
-            CONNS=$(mysql --defaults-file=${MYSQL_USER_CNF} -Nse "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE User NOT IN ('root','system user','sstuser','monitor');" 2>/dev/null )
-            
-            START=$(date +%s)
-            NOW=$(date +%s)
-            
-            while [ ${CONNS} -gt 0 ]; do
-                for con in $(mysql --defaults-file=${MYSQL_USER_CNF} -Nse "SELECT ID FROM information_schema.PROCESSLIST WHERE User NOT IN ('root','system user','sstuser','monitor');" 2>/dev/null ); do
-                
-                    if [ "$(mysql --defaults-file=${MYSQL_USER_CNF} -Nse "SELECT IF(COMMAND='Sleep',1,0) FROM information_schema.PROCESSLIST WHERE ID=$con;" 2>/dev/null )" = "1" ]; then
-                        mysql --defaults-file=${MYSQL_USER_CNF} -Nse "KILL CONNECTION $con;" 2>/dev/null
-                    fi
-                done
-
-                CONNS=$(mysql --defaults-file=${MYSQL_USER_CNF} -Nse "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE User NOT IN ('root','system user','sstuser','monitor');" 2>/dev/null )
-
-                logmsg "Connected users: ${CONNS}"
-
-                NOW=$(date +%s)
-
-                [[ $NOW -gt $((START+60)) ]] && break
-            done
-        fi
-
-        logmsg "60 seconds has elapsed - forcing users off";
-        
-        mysql -Nse "SET GLOBAL wsrep_reject_queries=ALL_KILL;"
-
-        kill "$CUR_PID"
-        wait "$CUR_PID"
-    fi
-
-    exit 0;
+    is_host "${1:-}" && [[ ! -z "${2:-}" ]] && $(nc -w 2 -z $1 $2) && return;
+    false;
 }
 
+function is_service_up ()
+{
+    $(mysql -Nse "SELECT 1;" > /dev/null 2>&1) && return;
+    false;
+}
 
-
-
+function is_daemon_running ()
+{
+    [[ $(pgrep -c $DAEMON_NAME) != 0 ]] && return;
+    false;
+}

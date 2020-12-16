@@ -4,53 +4,60 @@ socket                                 = ${MYSQL_SOCK}
 [mysqld]
 server-id                              = ${MYSQL_SERVER_ID}
 
-skip-character-set-client-handshake
+bind-address                           = ${MYSQL_BIND}
+
+socket                                 = ${MYSQL_SOCK}
+pid-file                               = ${MYSQL_PID}
+datadir                                = ${MYSQL_DATA}
+secure_file_priv                       = ${MYSQL_SECURE_DIR}
+
 collation_server                       = $MYSQL_COLLATE
 character_set_server                   = $MYSQL_CHARACTER_SET
 character_set_filesystem               = $MYSQL_CHARACTER_SET
 lc-messages-dir                        = /usr/share/mysql
 lc-messages                             = es_ES
 
-bind-address                           = $MYSQL_BIND
-
-skip_name_resolve
-explicit_defaults_for_timestamp        = ON
-
-datadir                                = ${MYSQL_DATA}
-socket                                 = ${MYSQL_SOCK}
-pid-file                               = ${MYSQL_PID}
-
 long_query_time                        = 0.5
-
-general_log_file                       = ${MYSQL_LOG}/mysqld.log
-log_error_verbosity                    = 2
-log-error                              = ${MYSQL_LOG}/error.log
 slow_query_log                         = ON
 slow_query_log_file                    = ${MYSQL_LOG}/slow_query.log
+general_log_file                       = ${MYSQL_LOG}/mysqld.log
+log-error                              = ${MYSQL_LOG}/error.log
+log_error_verbosity                    = 2
 
-innodb_flush_method                    = O_DIRECT
+skip_name_resolve
+skip-host-cache
+skip-character-set-client-handshake
+explicit_defaults_for_timestamp        = ON
+
+max_connections                        = 100
+
+wait_timeout                           = 300
+interactive_timeout                    = 300
+
+net_buffer_length                      = 16384
 join_buffer_size                       = 262144
 sort_buffer_size                       = 262144
 key_buffer_size                        = 8
 myisam_sort_buffer_size                = 4096
 read_buffer_size                       = 131072
 read_rnd_buffer_size                   = 262144
-innodb_log_buffer_size                 = 16777216
-innodb_buffer_pool_size                = 134217728
-innodb_buffer_pool_chunk_size          = 134217728
+
+thread_pool_size                       = $MYSQL_THREADP_SIZE
+
+table_definition_cache                 = 6000
+table_open_cache                       = 6000
+
+innodb_autoinc_lock_mode               = 2
+innodb_flush_method                    = O_DIRECT
+innodb_flush_log_at_trx_commit         = 0
 innodb_page_size                       = 16384
-innodb_buffer_pool_instances           = 1
+innodb_log_buffer_size                 = 16777216
+innodb_log_file_size                   = $MYSQL_INNO_LOG_SIZE
+innodb_buffer_pool_size                = $MYSQL_INNO_BP_SIZE
+innodb_buffer_pool_chunk_size          = 134217728
+innodb_buffer_pool_instances           = 2
 innodb_buffer_pool_dump_pct            = 100
 innodb_buffer_pool_dump_at_shutdown    = ON
 innodb_buffer_pool_load_at_startup     = ON
-max_connections                        = 101
-wait_timeout                           = 300
-interactive_timeout                    = 300
-table_definition_cache                 = 6000
-table_open_cache                       = 6000
-innodb_flush_log_at_trx_commit         = 0
-net_buffer_length                      = 16384
 
-!includedir                             ${MYSQL_CONFIG}/mysql.conf.d/
-!includedir                             ${MYSQL_CONFIG}/conf.d/
 !includedir                             ${MYSQL_CONFIG_EXTRA}/

@@ -2,7 +2,9 @@ FROM debian:stable-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
     MYSQL_HOME=${MYSQL_HOME:-/srv/mysql} \
-    LANG=${LANG:-en_US} \
+    LANG=${LANG:-es_ES} \
+    LANGUAGE="$LANG.UTF-8" \
+    TZ="Europe/Madrid" \
     SRV_VER=${SRV_VER:-80}
 
 RUN set -eux; \
@@ -14,7 +16,7 @@ RUN set -eux; \
     -d $MYSQL_HOME \
     mysql \
   ; \
-  [ ! -f "$MYSQL_HOME/.dock8s_has_config_files" ] && rm -Rf $MYSQL_HOME/*; \
+  rm -Rf $MYSQL_HOME/* > /dev/null 2>&1; \
   mkdir -pm0750 $MYSQL_HOME && chown -R 3306:3306 $MYSQL_HOME; \
   \
   apt-get update; \
@@ -22,9 +24,19 @@ RUN set -eux; \
       locales \
     ; \
     localedef -i $LANG -c -f UTF-8 -A /usr/share/locale/locale.alias $LANG.UTF-8; \
-    export LANG=$LANG.utf8 \
+    export LANG=$LANG.UTF-8; \
+    export LANGUAGE=$LANG \
+  ; \
+  echo "${TZ}" > /etc/timezone; \
+  \
+  if [[ -f "/usr/share/zoneinfo/$TZ" ]]; then \
+    rm /etc/localtime; \
+    ln -fs /usr/share/zoneinfo/$TZ /etc/localtime; \
+    dpkg-reconfigure tzdata; \
+  fi \
   ; \
   apt-mark auto '.*' > /dev/null; \
+  apt-mark manual locales; \
   apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
   apt-get clean; \
   rm -Rf \
@@ -44,7 +56,6 @@ RUN set -eux; \
     nano \
     netcat \
     openssl \
-    pigz \
     procps \
     psmisc \
     pv \
@@ -76,6 +87,10 @@ RUN set -eux; \
   apt-mark auto '.*' > /dev/null; \
   [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
   \
+  { \
+    echo "percona-server-server-${SRV_VER}" percona-server-server/datadir select ''; \
+    echo "percona-server-server-${SRV_VER}" percona-server-server/root_password password ''; \
+  } | debconf-set-selections; \
   apt-get install -y --no-install-recommends \
     percona-toolkit \
     percona-xtrabackup-${SRV_VER} \
@@ -95,16 +110,13 @@ RUN set -eux; \
     /var/tmp/* \
     /tmp/* \
     /var/lib/mysql* \
-  ; \
-  if [ -d "$MYSQL_HOME/data" ] && [ ! -f "$MYSQL_HOME/data/.dock8s_has_db_files" ]; then \
-    rm -Rf "$MYSQL_HOME/data"; \
-  fi \
+    /etc/mysql \
+    $MYSQL_HOME/data \
 ;
-
+ 
 COPY rootfs /
 
 RUN set -eux; \
-  mv /etc/mysql $MYSQL_HOME/default-etc; \
   chown -R 3306:3306 \
     $MYSQL_HOME \
     > /dev/null 2>&1 \
@@ -117,6 +129,8 @@ RUN set -eux; \
     $MYSQL_HOME/bin/* \
     $MYSQL_HOME/bin/docker/* \
   ; \
+  ln -fs $MYSQL_HOME/etc /etc/mysql; \
+  ln -fs /etc/alternatives/my.cnf $MYSQL_HOME/etc/my.cnf; \
   find $MYSQL_HOME/etc -type f -exec chmod 0640 {} + \
 ;
 

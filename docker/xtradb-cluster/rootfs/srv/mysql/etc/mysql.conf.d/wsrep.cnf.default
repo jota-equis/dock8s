@@ -1,11 +1,13 @@
 [mysqld]
 pxc_strict_mode                       = ENFORCING
+pxc-encrypt-cluster-traffic           = OFF
+
 wsrep_provider                        = /usr/lib/galera4/libgalera_smm.so
-wsrep_log_conflicts
 wsrep_retry_autocommit                = 3
+wsrep_log_conflicts
 
 wsrep_cluster_name                    = ${GALERA_CLUSTER_NAME}
-wsrep_cluster_address                 = gcomm://
+wsrep_cluster_address                 = gcomm://${GALERA_CLUSTER_NAME}
 
 wsrep_node_name                       = ${GALERA_NODE_NAME}
 wsrep_node_address                    = ${GALERA_NODE_ADDR}
@@ -14,6 +16,6 @@ wsrep_sst_receive_address             = ${GALERA_NODE_ADDR}
 wsrep_sst_method                      = ${GALERA_SST_METHOD}
 #wsrep_sst_auth                        = "${GALERA_REPLICATION_USER}:${GALERA_REPLICATION_PASSWORD}"
 wsrep_slave_threads                   = ${GALERA_CPU_THREADS}
-#wsrep_provider_options                = 'gcache.size=128M;gcache.recover=yes'
+wsrep_provider_options                = 'gcache.size=128M;gcache.recover=yes;gcs.fc_limit=16;gcs.fc_factor=0.8'
 
-innodb_autoinc_lock_mode              = 2
+
